@@ -304,22 +304,9 @@ button,
     min-width: 16px;
   }
 
-  /* Mobile drag and drop styles */
+  /* Remove drag and drop styles on mobile */
   .task-item {
-    touch-action: none; /* Prevents scrolling while dragging on mobile */
     position: relative;
     z-index: 1;
-  }
-
-  .task-item.task-dragging {
-    z-index: 10;
-    opacity: 0.7;
-    background-color: #d0c8b0 !important;
-    border: 2px dashed #6b5839 !important;
-  }
-
-  .task-item.task-drag-over {
-    border: 2px dashed #6b5839 !important;
-    background-color: rgba(107, 88, 57, 0.1) !important;
   }
 }

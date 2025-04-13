@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-context"
 import { getArchivedTasks, getArchivedMessages } from "@/lib/actions"
 import { Archive, MessageSquare, CheckCircle2, Calendar, User, Coffee, FileX } from "lucide-react"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface ArchivedTask {
   id: string
@@ -32,6 +33,7 @@ export default function ArchiveSystem() {
   const [archivedMessages, setArchivedMessages] = useState<ArchivedMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isMobile = useIsMobile()
 
   // Load archived data
   useEffect(() => {
@@ -42,8 +44,18 @@ export default function ArchiveSystem() {
       setError(null)
 
       try {
-        // Load archived tasks
-        const tasksResult = await getArchivedTasks(user.id)
+        // Load archived tasks with retry for mobile
+        let tasksResult
+        let retryCount = 0
+
+        while (retryCount < 3) {
+          tasksResult = await getArchivedTasks(user.id)
+          if (!tasksResult.error) break
+          retryCount++
+          // Short delay before retry
+          await new Promise((resolve) => setTimeout(resolve, 500))
+        }
+
         if (tasksResult.error) {
           console.error("Error loading archived tasks:", tasksResult.error)
           setError(`Error loading archived tasks: ${tasksResult.error}`)
@@ -56,8 +68,18 @@ export default function ArchiveSystem() {
           localStorage.setItem("bizniz-quest-archive", JSON.stringify({ tasks: filteredTasks }))
         }
 
-        // Load archived messages
-        const messagesResult = await getArchivedMessages(user.id)
+        // Load archived messages with retry for mobile
+        let messagesResult
+        retryCount = 0
+
+        while (retryCount < 3) {
+          messagesResult = await getArchivedMessages(user.id)
+          if (!messagesResult.error) break
+          retryCount++
+          // Short delay before retry
+          await new Promise((resolve) => setTimeout(resolve, 500))
+        }
+
         if (messagesResult.error) {
           console.error("Error loading archived messages:", messagesResult.error)
           if (!error) {

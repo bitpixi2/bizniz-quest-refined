@@ -34,6 +34,7 @@ import {
   Lock,
   Mail,
 } from "lucide-react"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface Message {
   id: number
@@ -100,6 +101,8 @@ export default function SocialSystem() {
   const [isRemovingFriend, setIsRemovingFriend] = useState(false)
   const [isUpdatingSharing, setIsUpdatingSharing] = useState(false)
   const [isInviting, setIsInviting] = useState(false)
+
+  const isMobile = useIsMobile()
 
   // Load messages
   useEffect(() => {
@@ -438,7 +441,7 @@ export default function SocialSystem() {
     }
   }
 
-  // Toggle screen sharing
+  // Modify the toggleScreenSharing function to ensure it works on mobile
   const toggleScreenSharing = async () => {
     if (!user) return
 
@@ -459,9 +462,18 @@ export default function SocialSystem() {
 
       // If enabling, also create the shared tasks
       if (!sharingEnabled) {
-        await enableTaskSharing()
+        const sharingResult = await enableTaskSharing()
+        if (sharingResult && sharingResult.error) {
+          console.error("Error enabling task sharing:", sharingResult.error)
+          setSharingStatus(`Error enabling sharing: ${sharingResult.error}`)
+          setTimeout(() => setSharingStatus(null), 3000)
+          return
+        }
       } else {
-        await disableTaskSharing()
+        const disableResult = await disableTaskSharing()
+        if (disableResult && disableResult.error) {
+          console.error("Error disabling task sharing:", disableResult.error)
+        }
       }
 
       // Update the local state

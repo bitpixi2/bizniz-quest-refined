@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="64" height="64">
+  <!-- Business Rookie -->
+  <rect width="16" height="16" fill="#f9d976" />
+  <!-- Face -->
+  <rect x="4" y="3" width="8" height="10" fill="#ffb385" />
+  <!-- Hair -->
+  <rect x="4" y="3" width="8" height="2" fill="#825e45" />
+  <rect x="3" y="3" width="1" height="4" fill="#825e45" />
+  <rect x="12" y="3" width="1" height="4" fill="#825e45" />
+  <!-- Eyes -->
+  <rect x="5" y="6" width="2" height="1" fill="#000000" />
+  <rect x="9" y="6" width="2" height="1" fill="#000000" />
+  <!-- Mouth -->
+  <rect x="6" y="9" width="4" height="1" fill="#000000" />
+  <!-- Business Suit -->
+  <rect x="4" y="13" width="8" height="3" fill="#2c3e50" />
+  <rect x="7" y="13" width="2" height="3" fill="#3498db" />
+</svg>

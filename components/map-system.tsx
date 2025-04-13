@@ -166,6 +166,19 @@ export default function MapSystem() {
     }
   }
 
+  // Add auto-save for mobile when locations change
+  useEffect(() => {
+    // Auto-save to database when on mobile to ensure changes are persisted
+    if (user && isMobile && locations.length > 0) {
+      // Use a debounce to avoid too many saves
+      const timer = setTimeout(() => {
+        saveDataToDatabase()
+      }, 2000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [locations, user, isMobile])
+
   return (
     <div className="p-6 bg-[#f8f3e3] rounded-lg max-w-5xl mx-auto border-4 border-[#6b5839] pixel-borders">
       <div className="flex justify-between items-center mb-4">

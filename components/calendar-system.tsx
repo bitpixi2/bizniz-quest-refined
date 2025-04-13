@@ -270,7 +270,17 @@ export default function CalendarSystem() {
     if (monthIndex !== -1) {
       localStorage.setItem("bizniz-quest-selected-month", monthIndex.toString())
     }
-  }, [months, selectedMonth])
+
+    // Auto-save to database when on mobile to ensure changes are persisted
+    if (user && isMobile) {
+      // Use a debounce to avoid too many saves
+      const timer = setTimeout(() => {
+        saveDataToDatabase()
+      }, 2000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [months, selectedMonth, user, isMobile])
 
   // Update selected month when months change
   useEffect(() => {
@@ -649,19 +659,20 @@ export default function CalendarSystem() {
               role="checkbox"
               aria-checked={task.completed}
               tabIndex={0}
-              draggable
-              onDragStart={(e) => handleDragStart(e, task.id)}
-              onDragEnd={handleDragEnd}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={(e) => handleDrop(e, task.id)}
-              onTouchStart={(e) => handleTouchStart(e, task.id)}
-              onTouchMove={(e) => handleTouchMove(e, task.id)}
-              onTouchEnd={(e) => handleTouchEnd(e, task.id)}
+              draggable={!isMobile}
+              onDragStart={!isMobile ? (e) => handleDragStart(e, task.id) : undefined}
+              onDragEnd={!isMobile ? handleDragEnd : undefined}
+              onDragOver={!isMobile ? handleDragOver : undefined}
+              onDragLeave={!isMobile ? handleDragLeave : undefined}
+              onDrop={!isMobile ? (e) => handleDrop(e, task.id) : undefined}
             >
-              <div className="task-action mr-2 cursor-move" onClick={(e) => e.stopPropagation()}>
-                <GripVertical className={`${isMobile ? "h-4 w-4" : "h-5 w-5"} text-[#6b5839] opacity-50 mobile-icon`} />
-              </div>
+              {!isMobile && (
+                <div className="task-action mr-2 cursor-move" onClick={(e) => e.stopPropagation()}>
+                  <GripVertical
+                    className={`${isMobile ? "h-4 w-4" : "h-5 w-5"} text-[#6b5839] opacity-50 mobile-icon`}
+                  />
+                </div>
+              )}
               <div
                 className={`${isMobile ? "w-4 h-4" : "w-5 h-5"} mr-3 border-2 border-[#6b5839] ${
                   task.completed ? "bg-[#7cb518]" : "bg-white"

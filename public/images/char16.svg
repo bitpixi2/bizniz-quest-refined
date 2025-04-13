@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16">
+  <!-- Customer Support -->
+  <rect width="16" height="16" fill="#fdedec" />
+  <!-- Face -->
+  <rect x="4" y="3" width="8" height="10" fill="#ffb385" />
+  <!-- Hair -->
+  <rect x="4" y="3" width="8" height="2" fill="#f1c40f" />
+  <rect x="3" y="3" width="1" height="3" fill="#f1c40f" />
+  <rect x="12" y="3" width="1" height="3" fill="#f1c40f" />
+  <!-- Eyes -->
+  <rect x="5" y="6" width="2" height="1" fill="#000000" />
+  <rect x="9" y="6" width="2" height="1" fill="#000000" />
+  <!-- Smile -->
+  <rect x="6" y="9" width="4" height="1" fill="#000000" />
+  <rect x="5" y="8" width="1" height="1" fill="#000000" />
+  <rect x="10" y="8" width="1" height="1" fill="#000000" />
+  <!-- Customer Support Outfit -->
+  <rect x="4" y="13" width="8" height="3" fill="#e74c3c" />
+  <rect x="6" y="13" width="4" height="1" fill="#c0392b" />
+</svg>

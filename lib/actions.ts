@@ -217,6 +217,9 @@ export async function getArchivedMessages(userId: string) {
   }
 }
 
+// Modify the saveMonths function to be more reliable on mobile
+// Around line 200-250
+
 // Save months data to database
 export async function saveMonths(userId: string, months: MonthData[]) {
   const supabase = createServerClient()
@@ -270,52 +273,70 @@ export async function saveMonths(userId: string, months: MonthData[]) {
     return { error: fetchError.message }
   }
 
-  // Process each month
+  // Add retry logic for mobile
+  const processMonth = async (month, retries = 3) => {
+    try {
+      // Check if month exists
+      const existingMonth = existingMonths?.find((m) => m.name === month.name && m.year === month.year)
+
+      if (existingMonth) {
+        // Update existing month
+        const { error: updateError } = await supabase
+          .from("months")
+          .update({
+            unlocked: month.unlocked,
+            completed: month.completed,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingMonth.id)
+
+        if (updateError) {
+          throw updateError
+        }
+
+        // Handle tasks for this month
+        await handleTasks(supabase, existingMonth.id, month.tasks)
+      } else {
+        // Insert new month
+        const { data: newMonth, error: insertError } = await supabase
+          .from("months")
+          .insert({
+            profile_id: userId,
+            name: month.name,
+            year: month.year,
+            unlocked: month.unlocked,
+            completed: month.completed,
+          })
+          .select("id")
+          .single()
+
+        if (insertError) {
+          throw insertError
+        }
+
+        // Handle tasks for this month
+        if (newMonth) {
+          await handleTasks(supabase, newMonth.id, month.tasks)
+        }
+      }
+
+      return { success: true }
+    } catch (error) {
+      if (retries > 0) {
+        // Wait a bit before retrying
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        return processMonth(month, retries - 1)
+      }
+      console.error("Error processing month after retries:", error)
+      return { error: error.message }
+    }
+  }
+
+  // Process each month with retry logic
   for (const month of months) {
-    // Check if month exists
-    const existingMonth = existingMonths?.find((m) => m.name === month.name && m.year === month.year)
-
-    if (existingMonth) {
-      // Update existing month
-      const { error: updateError } = await supabase
-        .from("months")
-        .update({
-          unlocked: month.unlocked,
-          completed: month.completed,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existingMonth.id)
-
-      if (updateError) {
-        console.error("Error updating month:", updateError)
-        return { error: updateError.message }
-      }
-
-      // Handle tasks for this month
-      await handleTasks(supabase, existingMonth.id, month.tasks)
-    } else {
-      // Insert new month
-      const { data: newMonth, error: insertError } = await supabase
-        .from("months")
-        .insert({
-          profile_id: userId,
-          name: month.name,
-          year: month.year,
-          unlocked: month.unlocked,
-          completed: month.completed,
-        })
-        .select("id")
-        .single()
-
-      if (insertError) {
-        console.error("Error inserting month:", insertError)
-        return { error: "Error inserting month: " + insertError.message }
-      }
-
-      // Handle tasks for this month
-      if (newMonth) {
-        await handleTasks(supabase, newMonth.id, month.tasks)
-      }
+    const result = await processMonth(month)
+    if (result.error) {
+      return { error: `Error processing month ${month.name}: ${result.error}` }
     }
   }
 
@@ -697,6 +718,7 @@ export async function loadUserData(userId: string) {
   }
 
   try {
+    let formattedLocations = []
     // Load months and tasks
     const { data: months, error: monthsError } = await supabase
       .from("months")
@@ -715,21 +737,40 @@ export async function loadUserData(userId: string) {
 
     console.log(`Loaded ${months?.length || 0} months for user ${userId}`)
 
-    // Load locations and tasks
-    const { data: locations, error: locationsError } = await supabase
-      .from("locations")
-      .select(`
-        id, location_key, name, description, extended_description, unlocked, visited, image,
-        location_tasks(id, name, position)
-      `)
-      .eq("profile_id", userId)
+    // Load locations and tasks - with better error handling
+    try {
+      const { data: locations, error: locationsError } = await supabase
+        .from("locations")
+        .select(`
+          id, location_key, name, description, extended_description, unlocked, visited, image,
+          location_tasks(id, name, position)
+        `)
+        .eq("profile_id", userId)
 
-    if (locationsError) {
-      console.error("Error loading locations:", locationsError)
-      return { error: locationsError.message }
+      if (locationsError) {
+        console.error("Error loading locations:", locationsError)
+        // Don't return early, just log the error and continue with empty locations
+        formattedLocations = []
+      } else {
+        // Format locations only if we successfully fetched them
+        formattedLocations =
+          locations?.map((location) => ({
+            id: location.location_key,
+            name: location.name,
+            description: location.description,
+            extendedDescription: location.extended_description,
+            unlocked: location.unlocked,
+            visited: location.visited,
+            image: location.image,
+            tasks: location.location_tasks.sort((a, b) => a.position - b.position).map((task) => task.name),
+          })) || []
+      }
+    } catch (locationError) {
+      console.error("Error in location fetch:", locationError)
+      formattedLocations = []
     }
 
-    console.log(`Loaded ${locations?.length || 0} locations for user ${userId}`)
+    console.log(`Loaded ${formattedLocations?.length || 0} locations for user ${userId}`)
 
     // Load character stats
     const { data: characterStats, error: statsError } = await supabase
@@ -769,17 +810,6 @@ export async function loadUserData(userId: string) {
           name: task.name,
           completed: task.completed,
         })),
-    }))
-
-    const formattedLocations = locations?.map((location) => ({
-      id: location.location_key,
-      name: location.name,
-      description: location.description,
-      extendedDescription: location.extended_description,
-      unlocked: location.unlocked,
-      visited: location.visited,
-      image: location.image,
-      tasks: location.location_tasks.sort((a, b) => a.position - b.position).map((task) => task.name),
     }))
 
     const formattedSkills = skills?.map((skill) => ({
