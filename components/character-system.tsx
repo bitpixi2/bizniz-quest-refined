@@ -346,10 +346,27 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
 
       // Update life balance categories if available
       if (data.lifeBalanceCategories && data.lifeBalanceCategories.length > 0) {
+        // Make sure we preserve the Snack Time category if it's not in the loaded data
         const formattedCategories = data.lifeBalanceCategories.map((category: any) => ({
           ...category,
           icon: getIconForCategory(category.id),
         }))
+
+        // Check if Snack Time is in the loaded categories
+        const hasSnackTime = formattedCategories.some((cat: any) => cat.id === "snack-time")
+
+        // If not, add it to the formatted categories
+        if (!hasSnackTime) {
+          formattedCategories.push({
+            id: "snack-time",
+            name: "SNACK TIME",
+            level: 0,
+            maxLevel: 5,
+            description: "The sacred ritual of staring into the fridge every 20 minutes hoping food materializes",
+            icon: <Pizza className="h-5 w-5 text-yellow-500" />,
+          })
+        }
+
         setLifeBalanceCategories(formattedCategories)
       }
 

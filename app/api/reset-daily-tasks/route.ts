@@ -5,14 +5,35 @@ export async function GET(request: Request) {
   try {
     const supabase = createServerClient()
 
-    // Update all tasks in Daily Tasks months to uncompleted in a single query
+    // First get the Daily Tasks month IDs
+    const { data: monthsData, error: monthsError } = await supabase
+      .from("months")
+      .select("id")
+      .eq("name", "Daily Tasks")
+
+    if (monthsError) {
+      console.error("Error finding Daily Tasks months:", monthsError)
+      return NextResponse.json({ error: monthsError.message }, { status: 500 })
+    }
+
+    // Then update tasks for those month IDs
+    const monthIds = monthsData.map((month) => month.id)
+
+    if (monthIds.length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: `No Daily Tasks months found to reset`,
+        timestamp: new Date().toISOString(),
+      })
+    }
+
     const { data, error } = await supabase
       .from("tasks")
       .update({
         completed: false,
         updated_at: new Date().toISOString(),
       })
-      .in("month_id", supabase.from("months").select("id").eq("name", "Daily Tasks"))
+      .in("month_id", monthIds)
 
     if (error) {
       console.error("Error resetting daily tasks:", error)
