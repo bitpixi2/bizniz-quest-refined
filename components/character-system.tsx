@@ -4,34 +4,32 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-  Brain,
   Heart,
-  Users,
-  Zap,
-  Code,
-  Briefcase,
-  BookOpen,
-  Network,
-  Cpu,
   Save,
   Lock,
   CheckCircle,
+  BookOpen,
+  Briefcase,
+  Users,
+  Home,
+  Baby,
+  Coffee,
+  Sparkles,
+  Pizza,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import { saveCharacterStats, saveSkills, loadUserData } from "@/lib/actions"
+import { saveCharacterData, loadUserData } from "@/lib/actions"
+import { Textarea } from "@/components/ui/textarea"
 
-interface Skill {
+interface LifeBalanceCategory {
   id: string
   name: string
   level: number
   maxLevel: number
   description: string
-  wandImage: string
-  category: "business" | "tech" | "creative" | "social"
   icon: React.ReactNode
 }
 
@@ -49,21 +47,11 @@ interface CharacterSystemProps {
 
 export default function CharacterSystem({ onError }: CharacterSystemProps = {}) {
   const { user } = useAuth()
-  // Initialize character stats from localStorage or default values
-  const [stats, setStats] = useState(() => {
-    if (typeof window !== "undefined") {
-      const savedStats =
-        localStorage.getItem("bizquest-character-stats") || localStorage.getItem("bizniz-quest-character-stats")
-      if (savedStats) {
-        return JSON.parse(savedStats)
-      }
-    }
-    return {
-      energy: 70,
-      learning: 45,
-      relationships: 60,
-    }
-  })
+  const [lifeBalanceNotes, setLifeBalanceNotes] = useState("")
+  const [totalPointsUsed, setTotalPointsUsed] = useState(0)
+  const [totalPointsAvailable] = useState(20)
+  const [isSaving, setIsSaving] = useState(false)
+  const [syncMessage, setSyncMessage] = useState<string | null>(null)
 
   // Character selection state
   const [characters, setCharacters] = useState<Character[]>([
@@ -252,78 +240,79 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
     }
   }, [characters])
 
-  // Initialize skills from localStorage or default values
-  const [skills, setSkills] = useState<Skill[]>(() => {
-    if (typeof window !== "undefined") {
-      const savedSkills =
-        localStorage.getItem("bizquest-character-skills") || localStorage.getItem("bizniz-quest-character-skills")
-      if (savedSkills) {
-        // Parse the saved skills and reconstruct the React elements for icons
-        const parsedSkills = JSON.parse(savedSkills)
-        return parsedSkills.map((skill: any) => ({
-          ...skill,
-          icon: getIconForSkill(skill.id, skill.category),
-        }))
-      }
-    }
+  // Initialize life balance categories
+  const [lifeBalanceCategories, setLifeBalanceCategories] = useState<LifeBalanceCategory[]>([
+    {
+      id: "love-life",
+      name: "LOVE LIFE",
+      level: 0,
+      maxLevel: 5,
+      description: "Because swiping right on spreadsheets doesn't count as romance",
+      icon: <Heart className="h-5 w-5 text-red-500" />,
+    },
+    {
+      id: "energy",
+      name: "ENERGY",
+      level: 0,
+      maxLevel: 5,
+      description: "For when coffee just isn't cutting it anymore",
+      icon: <Coffee className="h-5 w-5 text-amber-500" />,
+    },
+    {
+      id: "learning",
+      name: "LEARNING",
+      level: 0,
+      maxLevel: 5,
+      description: "Watching YouTube tutorials at 2x speed and still understanding nothing",
+      icon: <BookOpen className="h-5 w-5 text-blue-500" />,
+    },
+    {
+      id: "job",
+      name: "JOB",
+      level: 0,
+      maxLevel: 5,
+      description: "That thing you do between checking social media",
+      icon: <Briefcase className="h-5 w-5 text-purple-500" />,
+    },
+    {
+      id: "friendships",
+      name: "FRIENDSHIPS",
+      level: 0,
+      maxLevel: 5,
+      description: "People who tolerate your jokes and eat your cooking",
+      icon: <Users className="h-5 w-5 text-green-500" />,
+    },
+    {
+      id: "clean-house",
+      name: "CLEAN HOUSE",
+      level: 0,
+      maxLevel: 5,
+      description: "The mythical state your home reaches 5 minutes before guests arrive",
+      icon: <Home className="h-5 w-5 text-orange-500" />,
+    },
+    {
+      id: "dependents",
+      name: "DEPENDENTS",
+      level: 0,
+      maxLevel: 5,
+      description: "Kids, pets, plants, or that one friend who always needs help moving",
+      icon: <Baby className="h-5 w-5 text-pink-500" />,
+    },
+    {
+      id: "snack-time",
+      name: "SNACK TIME",
+      level: 0,
+      maxLevel: 5,
+      description: "The sacred ritual of staring into the fridge every 20 minutes hoping food materializes",
+      icon: <Pizza className="h-5 w-5 text-yellow-500" />,
+    },
+  ])
 
-    // Default skills data
-    return [
-      {
-        id: "web-dev",
-        name: "Web Development",
-        level: 3,
-        maxLevel: 5,
-        description: "Ability to create and maintain websites",
-        wandImage: "",
-        category: "tech",
-        icon: <Code className="h-5 w-5 text-blue-500" />,
-      },
-      {
-        id: "business-admin",
-        name: "Business Admin",
-        level: 2,
-        maxLevel: 5,
-        description: "Knowledge of business registration and administration",
-        wandImage: "",
-        category: "business",
-        icon: <Briefcase className="h-5 w-5 text-amber-500" />,
-      },
-      {
-        id: "creative-writing",
-        name: "Creative Writing",
-        level: 1,
-        maxLevel: 5,
-        description: "Ability to write engaging content and stories",
-        wandImage: "",
-        category: "creative",
-        icon: <BookOpen className="h-5 w-5 text-red-500" />,
-      },
-      {
-        id: "networking",
-        name: "Networking",
-        level: 0,
-        maxLevel: 5,
-        description: "Ability to connect with others and build relationships",
-        wandImage: "",
-        category: "social",
-        icon: <Network className="h-5 w-5 text-green-500" />,
-      },
-      {
-        id: "ai-knowledge",
-        name: "AI Knowledge",
-        level: 0,
-        maxLevel: 5,
-        description: "Understanding of artificial intelligence and its applications",
-        wandImage: "",
-        category: "tech",
-        icon: <Cpu className="h-5 w-5 text-purple-500" />,
-      },
-    ]
-  })
-
-  const [isSaving, setIsSaving] = useState(false)
-  const [syncMessage, setSyncMessage] = useState<string | null>(null)
+  // Calculate total points used whenever life balance categories change
+  useEffect(() => {
+    const pointsUsed = lifeBalanceCategories.reduce((total, category) => total + category.level, 0)
+    setTotalPointsUsed(pointsUsed)
+  }, [lifeBalanceCategories])
 
   // Load data from the database when the component mounts
   useEffect(() => {
@@ -341,32 +330,40 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
 
       if (data.error) {
         console.error(`Error loading data: ${data.error}`)
+
+        // Check if it's an auth error
+        if (data.isAuthError) {
+          setSyncMessage("Your session has expired. Please refresh the page.")
+          if (onError) onError("Authentication expired. Please refresh the page or log in again.")
+          return
+        }
+
         setSyncMessage(`Error: ${data.error}. Using local data.`)
         if (onError) onError(`Failed to load character data: ${data.error}`)
         setTimeout(() => setSyncMessage(null), 3000)
         return
       }
 
-      // Update character stats
-      if (data.characterStats) {
-        setStats(data.characterStats)
-        localStorage.setItem("bizniz-quest-character-stats", JSON.stringify(data.characterStats))
+      // Update life balance categories if available
+      if (data.lifeBalanceCategories && data.lifeBalanceCategories.length > 0) {
+        const formattedCategories = data.lifeBalanceCategories.map((category: any) => ({
+          ...category,
+          icon: getIconForCategory(category.id),
+        }))
+        setLifeBalanceCategories(formattedCategories)
       }
 
-      // Update skills
-      if (data.skills && data.skills.length > 0) {
-        const formattedSkills = data.skills.map((skill: any) => ({
-          ...skill,
-          icon: getIconForSkill(skill.id, skill.category),
-        }))
-        setSkills(formattedSkills)
+      // Update life balance notes if available
+      if (data.lifeBalanceNotes) {
+        setLifeBalanceNotes(data.lifeBalanceNotes)
+      }
 
-        // Save to localStorage without the React elements
-        const serializableSkills = formattedSkills.map((skill) => ({
-          ...skill,
-          icon: null,
-        }))
-        localStorage.setItem("bizniz-quest-character-skills", JSON.stringify(serializableSkills))
+      // Update selected character if available
+      if (data.selectedCharacterId) {
+        const character = characters.find((c) => c.id === data.selectedCharacterId)
+        if (character) {
+          setSelectedCharacter(character)
+        }
       }
 
       setSyncMessage("Data loaded successfully!")
@@ -386,126 +383,86 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
     setSyncMessage("Saving...")
 
     try {
-      // Save character stats
-      const statsResult = await saveCharacterStats(user.id, stats)
-
-      if (statsResult.error) {
-        console.error(`Error saving stats: ${statsResult.error}`)
-        return
-      }
-
-      // Save skills
-      const skillsData = skills.map((skill) => ({
-        id: skill.id,
-        name: skill.name,
-        level: skill.level,
-        maxLevel: skill.maxLevel,
-        description: skill.description,
-        category: skill.category,
+      // Format life balance categories for saving (without React elements)
+      const categoriesData = lifeBalanceCategories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        level: category.level,
+        maxLevel: category.maxLevel,
+        description: category.description,
       }))
 
-      const skillsResult = await saveSkills(user.id, skillsData)
+      const result = await saveCharacterData(user.id, {
+        lifeBalanceCategories: categoriesData,
+        lifeBalanceNotes,
+        selectedCharacterId: selectedCharacter.id,
+      })
 
-      if (skillsResult.error) {
-        console.error(`Error saving skills: ${skillsResult.error}`)
+      if (result.error) {
+        console.error(`Error saving data: ${result.error}`)
+        setSyncMessage(`Error: ${result.error}`)
+        setTimeout(() => setSyncMessage(null), 3000)
         return
       }
 
-      setSyncMessage("Saved!")
-
-      // Manually refresh the page after saving
-      if (typeof window !== "undefined") {
-        window.location.reload()
-      }
+      setSyncMessage("Saved successfully!")
+      setTimeout(() => setSyncMessage(null), 2000)
     } catch (error) {
       console.error("Error saving data:", error)
+      setSyncMessage("Error saving data.")
+      setTimeout(() => setSyncMessage(null), 3000)
     } finally {
       setIsSaving(false)
-      // Clear message after 2 seconds
-      setTimeout(() => setSyncMessage(null), 2000)
     }
   }
 
-  // Helper function to get the appropriate icon for a skill
-  function getIconForSkill(id: string, category: string) {
+  // Helper function to get the appropriate icon for a category
+  function getIconForCategory(id: string) {
     switch (id) {
-      case "web-dev":
-        return <Code className="h-5 w-5 text-blue-500" />
-      case "business-admin":
-        return <Briefcase className="h-5 w-5 text-amber-500" />
-      case "creative-writing":
-        return <BookOpen className="h-5 w-5 text-red-500" />
-      case "networking":
-        return <Network className="h-5 w-5 text-green-500" />
-      case "ai-knowledge":
-        return <Cpu className="h-5 w-5 text-purple-500" />
+      case "love-life":
+        return <Heart className="h-5 w-5 text-red-500" />
+      case "energy":
+        return <Coffee className="h-5 w-5 text-amber-500" />
+      case "learning":
+        return <BookOpen className="h-5 w-5 text-blue-500" />
+      case "job":
+        return <Briefcase className="h-5 w-5 text-purple-500" />
+      case "friendships":
+        return <Users className="h-5 w-5 text-green-500" />
+      case "clean-house":
+        return <Home className="h-5 w-5 text-orange-500" />
+      case "dependents":
+        return <Baby className="h-5 w-5 text-pink-500" />
+      case "snack-time":
+        return <Pizza className="h-5 w-5 text-yellow-500" />
       default:
-        // Default icon based on category
-        if (category === "tech") return <Code className="h-5 w-5 text-blue-500" />
-        if (category === "business") return <Briefcase className="h-5 w-5 text-amber-500" />
-        if (category === "creative") return <BookOpen className="h-5 w-5 text-red-500" />
-        if (category === "social") return <Network className="h-5 w-5 text-green-500" />
-        return <Zap className="h-5 w-5 text-gray-500" />
+        return <Sparkles className="h-5 w-5 text-gray-500" />
     }
   }
 
-  // Save stats to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem("bizniz-quest-character-stats", JSON.stringify(stats))
-  }, [stats])
+  // Set a specific level for a category
+  const setCategoryLevel = (categoryId: string, level: number) => {
+    // Check if setting this level would exceed the total points available
+    const currentLevel = lifeBalanceCategories.find((cat) => cat.id === categoryId)?.level || 0
+    const pointDifference = level - currentLevel
 
-  // Save skills to localStorage whenever they change
-  useEffect(() => {
-    // We need to serialize the skills without the React elements
-    const serializableSkills = skills.map((skill) => ({
-      ...skill,
-      icon: null, // Remove the React element before serializing
-    }))
-    localStorage.setItem("bizniz-quest-character-skills", JSON.stringify(serializableSkills))
-  }, [skills])
+    if (totalPointsUsed + pointDifference > totalPointsAvailable) {
+      setSyncMessage(`You only have ${totalPointsAvailable - totalPointsUsed} points left to spend!`)
+      setTimeout(() => setSyncMessage(null), 3000)
+      return
+    }
 
-  // Set a specific level for a skill
-  const setSkillLevel = (skillId: string, level: number) => {
-    setSkills((prevSkills) =>
-      prevSkills.map((skill) => {
-        if (skill.id === skillId) {
-          return { ...skill, level }
+    setLifeBalanceCategories((prevCategories) =>
+      prevCategories.map((category) => {
+        if (category.id === categoryId) {
+          return { ...category, level }
         }
-        return skill
+        return category
       }),
     )
   }
 
-  // Level up a skill (for the + button)
-  const levelUpSkill = (skillId: string) => {
-    setSkills((prevSkills) =>
-      prevSkills.map((skill) => {
-        if (skill.id === skillId && skill.level < skill.maxLevel) {
-          return { ...skill, level: skill.level + 1 }
-        }
-        return skill
-      }),
-    )
-  }
-
-  // Update a stat value when clicking on the progress bar
-  const updateStat = (statName: "energy" | "learning" | "relationships", event: React.MouseEvent<HTMLDivElement>) => {
-    const progressBar = event.currentTarget
-    const rect = progressBar.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const width = rect.width
-    const percentage = Math.round((x / width) * 100)
-
-    // Ensure the value is between 0 and 100
-    const newValue = Math.max(0, Math.min(100, percentage))
-
-    setStats((prevStats) => ({
-      ...prevStats,
-      [statName]: newValue,
-    }))
-  }
-
-  // Replace the return statement with the new layout including character selection and inventory
+  // Return the component JSX
   return (
     <div className="p-4 bg-[#f8f3e3] rounded-lg max-w-5xl mx-auto border-4 border-[#6b5839] pixel-borders">
       <div className="flex justify-between items-center mb-4">
@@ -593,151 +550,76 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
           </Card>
         </div>
 
-        {/* Skills */}
+        {/* Life Balance Plan */}
         <div className="md:col-span-2">
           <Card className="bg-[#ffe9b3] border-4 border-[#6b5839] pixel-borders h-full">
             <CardHeader className="p-4 pb-0">
-              <CardTitle className="text-xl font-pixel text-[#6b5839]">Skills</CardTitle>
-              <CardDescription className="font-pixel text-xs text-[#6b5839]">
-                Level up or cry trying! No refunds on skill points.
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl font-pixel text-[#6b5839]">LIFE BALANCE PLAN</CardTitle>
+              </div>
+              <div
+                className={`font-pixel text-sm ${totalPointsUsed === totalPointsAvailable ? "text-red-500" : "text-green-500"} mt-1`}
+              >
+                {totalPointsUsed}/{totalPointsAvailable} Points Used
+              </div>
             </CardHeader>
             <CardContent className="p-4">
               <div className="grid grid-cols-1 gap-4">
-                {skills.map((skill) => (
+                {lifeBalanceCategories.map((category) => (
                   <div
-                    key={skill.id}
-                    className={`bg-[#f0e6d2] p-3 rounded-lg border-2 border-[#6b5839] pixel-borders flex flex-col sm:flex-row items-start sm:items-center ${
-                      skill.level === 0 ? "opacity-50" : ""
-                    }`}
+                    key={category.id}
+                    className="bg-[#f0e6d2] p-3 rounded-lg border-2 border-[#6b5839] pixel-borders flex flex-col sm:flex-row items-start sm:items-center"
                   >
-                    <div className="mr-3 w-10 h-10 flex items-center justify-center mb-2 sm:mb-0">{skill.icon}</div>
+                    <div className="mr-3 w-10 h-10 flex items-center justify-center mb-2 sm:mb-0">{category.icon}</div>
                     <div className="flex-1 w-full">
                       <div className="flex flex-wrap justify-between items-center mb-1">
-                        <h3 className="font-pixel text-sm text-[#6b5839]">{skill.name}</h3>
-                        <Badge
-                          className={`font-pixel text-xs mt-1 sm:mt-0 ${
-                            skill.category === "tech"
-                              ? "bg-blue-500"
-                              : skill.category === "business"
-                                ? "bg-amber-500"
-                                : skill.category === "creative"
-                                  ? "bg-red-500"
-                                  : "bg-green-500"
-                          }`}
-                        >
-                          {skill.category}
+                        <h3 className="font-pixel text-sm text-[#6b5839]">{category.name}</h3>
+                        <Badge className="font-pixel text-xs mt-1 sm:mt-0 bg-[#7cb518]">
+                          {category.level} / {category.maxLevel}
                         </Badge>
                       </div>
-                      <p className="font-pixel text-xs text-[#6b5839] mb-1">{skill.description}</p>
-                      <div className="flex items-center gap-1 flex-wrap sm:flex-nowrap">
-                        <span className="font-pixel text-xs text-[#6b5839] mr-1">Level:</span>
+                      <p className="font-pixel text-xs text-[#6b5839] mb-1">{category.description}</p>
+                      <div className="flex items-center gap-1">
                         <div className="flex-1 flex gap-1">
-                          {Array.from({ length: skill.maxLevel }).map((_, i) => (
+                          {Array.from({ length: category.maxLevel }).map((_, i) => (
                             <div
                               key={i}
                               className={`h-3 w-full ${
-                                i < skill.level ? "bg-[#7cb518]" : "bg-[#d0c8b0]"
+                                i < category.level ? "bg-[#7cb518]" : "bg-[#d0c8b0]"
                               } border border-[#6b5839] pixel-borders cursor-pointer`}
-                              onClick={() => setSkillLevel(skill.id, i + 1)}
+                              onClick={() => setCategoryLevel(category.id, i + 1)}
                               title={`Set to level ${i + 1}`}
-                              aria-label={`Set ${skill.name} to level ${i + 1}`}
+                              aria-label={`Set ${category.name} to level ${i + 1}`}
                               role="button"
                               tabIndex={0}
                             ></div>
                           ))}
                         </div>
-                        <button
-                          onClick={() => levelUpSkill(skill.id)}
-                          className="ml-2 px-2 py-1 bg-[#ffe9b3] border border-[#6b5839] rounded font-pixel text-xs text-[#6b5839] pixel-borders"
-                          disabled={skill.level >= skill.maxLevel}
-                          aria-label={`Level up ${skill.name}`}
-                        >
-                          <Zap className="h-3 w-3" />
-                        </button>
                       </div>
                     </div>
                   </div>
                 ))}
-              </div>
 
-              {/* Character Stats Section - Now under skills */}
-              <div className="mt-6 bg-[#f0e6d2] border-2 border-[#6b5839] pixel-borders p-4 rounded-lg">
-                <h3 className="text-lg font-pixel text-[#6b5839] mb-3">Character Stats</h3>
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <Heart className="text-red-500 h-4 w-4" />
-                      <span className="font-pixel text-xs text-[#6b5839]">Energy:</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="flex-1 cursor-pointer"
-                        onClick={(e) => updateStat("energy", e)}
-                        title="Click to set energy level"
-                        aria-label="Energy level slider"
-                        role="slider"
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={stats.energy}
-                      >
-                        <Progress value={stats.energy} className="h-2 bg-red-200" indicatorClassName="bg-red-500" />
-                      </div>
-                      <span className="font-pixel text-xs text-[#6b5839]">{stats.energy}%</span>
-                    </div>
+                {/* Life Balance Notes Section */}
+                <div className="mt-6 bg-[#f0e6d2] border-2 border-[#6b5839] pixel-borders p-4 rounded-lg">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-lg font-pixel text-[#6b5839]">LIFE BALANCE NOTES</h3>
+                    <Button
+                      onClick={saveDataToDatabase}
+                      disabled={isSaving}
+                      className="bg-[#7cb518] text-white border-2 border-[#6b5839] hover:bg-[#6b9c16] font-pixel pixel-borders"
+                      size="sm"
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      Save
+                    </Button>
                   </div>
-
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <Brain className="text-amber-500 h-4 w-4" />
-                      <span className="font-pixel text-xs text-[#6b5839]">Learning:</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="flex-1 cursor-pointer"
-                        onClick={(e) => updateStat("learning", e)}
-                        title="Click to set learning level"
-                        aria-label="Learning level slider"
-                        role="slider"
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={stats.learning}
-                      >
-                        <Progress
-                          value={stats.learning}
-                          className="h-2 bg-amber-200"
-                          indicatorClassName="bg-amber-500"
-                        />
-                      </div>
-                      <span className="font-pixel text-xs text-[#6b5839]">{stats.learning}%</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <Users className="text-blue-500 h-4 w-4" />
-                      <span className="font-pixel text-xs text-[#6b5839]">Relationships:</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="flex-1 cursor-pointer"
-                        onClick={(e) => updateStat("relationships", e)}
-                        title="Click to set relationships level"
-                        aria-label="Relationships level slider"
-                        role="slider"
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={stats.relationships}
-                      >
-                        <Progress
-                          value={stats.relationships}
-                          className="h-2 bg-blue-200"
-                          indicatorClassName="bg-blue-500"
-                        />
-                      </div>
-                      <span className="font-pixel text-xs text-[#6b5839]">{stats.relationships}%</span>
-                    </div>
-                  </div>
+                  <Textarea
+                    value={lifeBalanceNotes}
+                    onChange={(e) => setLifeBalanceNotes(e.target.value)}
+                    placeholder="Add your life balance notes here..."
+                    className="font-pixel text-sm text-[#6b5839] bg-[#ffe9b3] border-2 border-[#6b5839] min-h-[120px] p-2"
+                  />
                 </div>
               </div>
             </CardContent>

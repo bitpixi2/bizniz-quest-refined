@@ -92,7 +92,7 @@ function LoginFormContent() {
         <CardTitle className="text-xl font-pixel text-center text-[#6b5839]">Did you remember your badge?</CardTitle>
       </CardHeader>
       <CardContent>
-        {message && (
+        {message && message !== "Your session has expired. Please log in again." && (
           <div className="bg-[#f9c74f] border border-[#f9c74f] text-[#6b5839] px-4 py-2 rounded mb-4 font-pixel text-xs">
             {message}
           </div>

@@ -706,7 +706,188 @@ export async function saveSkills(userId: string, skills: Skill[]) {
   return { success: true }
 }
 
-// Load user data from database
+// Update the loadUserData function to handle JWT expiration more gracefully
+// Find the loadUserData function and modify it to include better error handling
+
+// Save documents to database
+export async function saveDocuments(userId: string, documents: any[]) {
+  const supabase = createServerClient()
+
+  try {
+    // First, get all existing documents for this user
+    const { data: existingDocuments, error: fetchError } = await supabase
+      .from("documents")
+      .select("id, document_key")
+      .eq("profile_id", userId)
+
+    if (fetchError) {
+      console.error("Error fetching documents:", fetchError)
+      return { error: fetchError.message }
+    }
+
+    // Process each document
+    for (const document of documents) {
+      // Check if document exists
+      const existingDocument = existingDocuments?.find((d) => d.document_key === document.id)
+
+      if (existingDocument) {
+        // Update existing document
+        const { error: updateError } = await supabase
+          .from("documents")
+          .update({
+            name: document.name,
+            description: document.description,
+            type: document.type,
+            quantity: document.quantity,
+            completed: document.completed,
+            related_task: document.related_task,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingDocument.id)
+
+        if (updateError) {
+          console.error("Error updating document:", updateError)
+          return { error: updateError.message }
+        }
+      } else {
+        // Insert new document
+        const { error: insertError } = await supabase.from("documents").insert({
+          profile_id: userId,
+          document_key: document.id,
+          name: document.name,
+          description: document.description,
+          type: document.type,
+          quantity: document.quantity,
+          completed: document.completed,
+          related_task: document.related_task,
+        })
+
+        if (insertError) {
+          console.error("Error inserting document:", insertError)
+          return { error: insertError.message }
+        }
+      }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("Unexpected error in saveDocuments:", error)
+    return { error: "An unexpected error occurred" }
+  }
+}
+
+// Load documents from database
+export async function loadDocuments(userId: string) {
+  const supabase = createServerClient()
+
+  try {
+    const { data, error } = await supabase.from("documents").select("*").eq("profile_id", userId)
+
+    if (error) {
+      console.error("Error loading documents:", error)
+      return { error: error.message }
+    }
+
+    return { documents: data }
+  } catch (error) {
+    console.error("Unexpected error in loadDocuments:", error)
+    return { error: "An unexpected error occurred" }
+  }
+}
+
+// Add this new function to save character data including life balance plan
+export async function saveCharacterData(userId: string, data: any) {
+  const supabase = createServerClient()
+
+  try {
+    // First, check if a profile exists for this user
+    const { data: existingProfile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle()
+
+    if (profileError) {
+      console.error("Error checking profile:", profileError)
+      return { error: profileError.message }
+    }
+
+    // If no profile exists, create one
+    if (!existingProfile) {
+      // Get user details from auth
+      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId)
+
+      if (userError) {
+        console.error("Error fetching user:", userError)
+        return { error: "User not found: " + userError.message }
+      }
+
+      // Create a profile for the user
+      const { error: insertProfileError } = await supabase.from("profiles").insert({
+        id: userId,
+        username: userData.user.email?.split("@")[0] || "user",
+        display_name: userData.user.email?.split("@")[0] || "User",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+
+      if (insertProfileError) {
+        console.error("Error creating profile:", insertProfileError)
+        return { error: "Failed to create profile: " + insertProfileError.message }
+      }
+    }
+
+    // Check if life balance data exists for this user
+    const { data: existingLifeBalance, error: lifeBalanceError } = await supabase
+      .from("life_balance")
+      .select("id")
+      .eq("profile_id", userId)
+      .maybeSingle()
+
+    if (lifeBalanceError && !lifeBalanceError.message.includes("No rows found")) {
+      console.error("Error checking life balance data:", lifeBalanceError)
+      return { error: lifeBalanceError.message }
+    }
+
+    if (existingLifeBalance) {
+      // Update existing life balance data
+      const { error: updateError } = await supabase
+        .from("life_balance")
+        .update({
+          categories: data.lifeBalanceCategories || [],
+          notes: data.lifeBalanceNotes || "",
+          selected_character_id: data.selectedCharacterId || 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", existingLifeBalance.id)
+
+      if (updateError) {
+        console.error("Error updating life balance data:", updateError)
+        return { error: updateError.message }
+      }
+    } else {
+      // Insert new life balance data
+      const { error: insertError } = await supabase.from("life_balance").insert({
+        profile_id: userId,
+        categories: data.lifeBalanceCategories || [],
+        notes: data.lifeBalanceNotes || "",
+        selected_character_id: data.selectedCharacterId || 1,
+      })
+
+      if (insertError) {
+        console.error("Error inserting life balance data:", insertError)
+        return { error: insertError.message }
+      }
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error("Error in saveCharacterData:", error)
+    return { error: "An unexpected error occurred" }
+  }
+}
+
+// Update the loadUserData function to include life balance data
 export async function loadUserData(userId: string) {
   const supabase = createServerClient()
 
@@ -732,7 +913,22 @@ export async function loadUserData(userId: string) {
 
     if (monthsError) {
       console.error("Error loading months:", monthsError)
-      return { error: monthsError.message }
+
+      // Only treat as auth error if it's explicitly a JWT expired error
+      // Not just any JWT-related message
+      if (monthsError.message && monthsError.message.includes("JWT expired")) {
+        return {
+          error: "Authentication expired. Please refresh the page or log in again.",
+          isAuthError: true,
+        }
+      }
+
+      // For other JWT errors, just log and continue
+      if (monthsError.message && monthsError.message.includes("JWT")) {
+        console.warn("JWT issue detected but continuing:", monthsError.message)
+      } else {
+        return { error: monthsError.message }
+      }
     }
 
     console.log(`Loaded ${months?.length || 0} months for user ${userId}`)
@@ -781,7 +977,7 @@ export async function loadUserData(userId: string) {
 
     if (statsError) {
       console.error("Error loading character stats:", statsError)
-      return { error: statsError.message }
+      // Continue loading other data
     }
 
     // Load skills
@@ -792,10 +988,20 @@ export async function loadUserData(userId: string) {
 
     if (skillsError) {
       console.error("Error loading skills:", skillsError)
-      return { error: skillsError.message }
+      // Continue loading other data
     }
 
-    console.log(`Loaded ${skills?.length || 0} skills for user ${userId}`)
+    // Load life balance data
+    const { data: lifeBalanceData, error: lifeBalanceError } = await supabase
+      .from("life_balance")
+      .select("categories, notes, selected_character_id")
+      .eq("profile_id", userId)
+      .maybeSingle()
+
+    if (lifeBalanceError && !lifeBalanceError.message.includes("No rows found")) {
+      console.error("Error loading life balance data:", lifeBalanceError)
+      // Continue loading other data
+    }
 
     // Format the data for the client
     const formattedMonths = months?.map((month) => ({
@@ -860,6 +1066,9 @@ export async function loadUserData(userId: string) {
         locations: formattedLocations || [],
         characterStats: characterStats || { energy: 70, learning: 45, relationships: 60 },
         skills: formattedSkills || [],
+        lifeBalanceCategories: lifeBalanceData?.categories || [],
+        lifeBalanceNotes: lifeBalanceData?.notes || "",
+        selectedCharacterId: lifeBalanceData?.selected_character_id || 1,
       }
     }
 
@@ -868,6 +1077,9 @@ export async function loadUserData(userId: string) {
       locations: formattedLocations || [],
       characterStats: characterStats || { energy: 70, learning: 45, relationships: 60 },
       skills: formattedSkills || [],
+      lifeBalanceCategories: lifeBalanceData?.categories || [],
+      lifeBalanceNotes: lifeBalanceData?.notes || "",
+      selectedCharacterId: lifeBalanceData?.selected_character_id || 1,
     }
   } catch (error) {
     console.error("Unexpected error in loadUserData:", error)
@@ -1025,92 +1237,6 @@ export async function shareTasksWithCoworkers(userId: string) {
     return { success: true }
   } catch (error) {
     console.error("Unexpected error in shareTasksWithCoworkers:", error)
-    return { error: "An unexpected error occurred" }
-  }
-}
-
-// Save documents to database
-export async function saveDocuments(userId: string, documents: any[]) {
-  const supabase = createServerClient()
-
-  try {
-    // First, get all existing documents for this user
-    const { data: existingDocuments, error: fetchError } = await supabase
-      .from("documents")
-      .select("id, document_key")
-      .eq("profile_id", userId)
-
-    if (fetchError) {
-      console.error("Error fetching documents:", fetchError)
-      return { error: fetchError.message }
-    }
-
-    // Process each document
-    for (const document of documents) {
-      // Check if document exists
-      const existingDocument = existingDocuments?.find((d) => d.document_key === document.id)
-
-      if (existingDocument) {
-        // Update existing document
-        const { error: updateError } = await supabase
-          .from("documents")
-          .update({
-            name: document.name,
-            description: document.description,
-            type: document.type,
-            quantity: document.quantity,
-            completed: document.completed,
-            related_task: document.related_task,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existingDocument.id)
-
-        if (updateError) {
-          console.error("Error updating document:", updateError)
-          return { error: updateError.message }
-        }
-      } else {
-        // Insert new document
-        const { error: insertError } = await supabase.from("documents").insert({
-          profile_id: userId,
-          document_key: document.id,
-          name: document.name,
-          description: document.description,
-          type: document.type,
-          quantity: document.quantity,
-          completed: document.completed,
-          related_task: document.related_task,
-        })
-
-        if (insertError) {
-          console.error("Error inserting document:", insertError)
-          return { error: insertError.message }
-        }
-      }
-    }
-
-    return { success: true }
-  } catch (error) {
-    console.error("Unexpected error in saveDocuments:", error)
-    return { error: "An unexpected error occurred" }
-  }
-}
-
-// Load documents from database
-export async function loadDocuments(userId: string) {
-  const supabase = createServerClient()
-
-  try {
-    const { data, error } = await supabase.from("documents").select("*").eq("profile_id", userId)
-
-    if (error) {
-      console.error("Error loading documents:", error)
-      return { error: error.message }
-    }
-
-    return { documents: data }
-  } catch (error) {
-    console.error("Unexpected error in loadDocuments:", error)
     return { error: "An unexpected error occurred" }
   }
 }

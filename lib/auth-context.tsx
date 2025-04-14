@@ -79,10 +79,34 @@ export const AuthProvider: React.FC<Props> = ({ children }) => {
       console.log("Setting up auth state change listener")
       const {
         data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, session) => {
+      } = supabase.auth.onAuthStateChange(async (_event, session) => {
         if (isMounted) {
           if (session?.user) {
             console.log("Auth state changed, user ID:", session.user.id)
+
+            // If the session is about to expire, try to refresh it
+            // But only if it's about to expire in less than 2 minutes (instead of 5)
+            if (session.expires_at) {
+              const expiresAt = new Date(session.expires_at * 1000)
+              const now = new Date()
+              const timeUntilExpiry = expiresAt.getTime() - now.getTime()
+
+              // Only refresh if token expires in less than 2 minutes
+              if (timeUntilExpiry < 2 * 60 * 1000) {
+                console.log("Session about to expire, refreshing...")
+                try {
+                  const { data, error } = await supabase.auth.refreshSession()
+                  if (error) {
+                    console.error("Error refreshing session:", error)
+                  } else if (data.session) {
+                    console.log("Session refreshed successfully")
+                    session = data.session
+                  }
+                } catch (refreshError) {
+                  console.error("Error during session refresh:", refreshError)
+                }
+              }
+            }
           } else {
             console.log("Auth state changed, no user")
           }
