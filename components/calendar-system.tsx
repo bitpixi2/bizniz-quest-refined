@@ -5,11 +5,12 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, GripVertical, Save, RefreshCw, RotateCcw } from "lucide-react"
+import { PlusCircle, GripVertical, Save, RefreshCw, RotateCcw, Lock as LockIcon } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { saveMonths, loadUserData } from "@/lib/actions"
 import { useSupabaseClient } from "@supabase/auth-helpers-react"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { getTodoTitles, setTodoTitle } from "@/lib/todo-title-actions"
 
 interface MonthData {
   name: string
@@ -36,7 +37,7 @@ export default function CalendarSystem() {
       }
     }
 
-    // Default empty months
+    // Default empty months (preserve backend mapping)
     return [
       {
         name: "April",
@@ -68,6 +69,34 @@ export default function CalendarSystem() {
       },
     ]
   })
+
+  // Editable To Do titles (To Do 1-3)
+  const [todoTitles, setTodoTitles] = useState<{ [key: number]: string }>({ 1: "To Do 1", 2: "To Do 2", 3: "To Do 3" });
+  const [todoTitleInputs, setTodoTitleInputs] = useState<{ [key: number]: string }>({ 1: "To Do 1", 2: "To Do 2", 3: "To Do 3" });
+  const [savingTitle, setSavingTitle] = useState<{ [key: number]: boolean }>({ 1: false, 2: false, 3: false });
+  const [loadingTitles, setLoadingTitles] = useState(false);
+  // Placeholder for paid logic (like characters to unlock)
+  const isPaid = false; // TODO: Replace with real paid status
+
+  // Helper to map month index to To Do number
+  const getTodoNumber = (monthIndex: number) => monthIndex + 1;
+  // Helper to get To Do display title
+  const getTodoTitle = (todoNumber: number) => todoTitles[todoNumber] || `To Do ${todoNumber}`;
+
+  // Save To Do title to backend
+  const saveTodoTitle = async (todoNumber: number) => {
+    if (!user) return;
+    setSavingTitle((prev) => ({ ...prev, [todoNumber]: true }));
+    await setTodoTitle(user.id, todoNumber, todoTitleInputs[todoNumber] || `To Do ${todoNumber}`);
+    setTodoTitles((prev) => ({ ...prev, [todoNumber]: todoTitleInputs[todoNumber] || `To Do ${todoNumber}` }));
+    setSavingTitle((prev) => ({ ...prev, [todoNumber]: false }));
+  };
+
+  // Handle To Do title input change
+  const handleTodoTitleChange = (todoNumber: number, value: string) => {
+    setTodoTitleInputs((prev) => ({ ...prev, [todoNumber]: value }));
+  };
+
 
   const [selectedMonth, setSelectedMonth] = useState<MonthData>(() => {
     // Get the selected month from localStorage or default to the first month
@@ -107,9 +136,19 @@ export default function CalendarSystem() {
   // Load data from the database when the component mounts
   useEffect(() => {
     if (user) {
-      loadDataFromDatabase()
+      loadDataFromDatabase();
+      // Load To Do titles
+      setLoadingTitles(true);
+      getTodoTitles(user.id).then((result) => {
+        if (result.titles) {
+          setTodoTitles({ ...todoTitles, ...result.titles });
+          setTodoTitleInputs({ ...todoTitleInputs, ...result.titles });
+        }
+        setLoadingTitles(false);
+      });
     }
-  }, [user])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Function to load data from the database
   const loadDataFromDatabase = async () => {
@@ -703,6 +742,60 @@ export default function CalendarSystem() {
             </div>
           ))}
         </div>
+
+        {/* To Do 1-4 Section (below tasks list on mobile) */}
+        {isMobile && (
+          <div className="mt-8 grid gap-4">
+            {[0, 1, 2, 3].map((monthIdx) => {
+              const todoNumber = getTodoNumber(monthIdx);
+              const isLocked = todoNumber === 4 && !isPaid;
+              return (
+                <Card key={todoNumber} className="border-2 border-[#6b5839] pixel-borders">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      {todoNumber <= 3 ? (
+                        <>
+                          <input
+                            type="text"
+                            value={todoTitleInputs[todoNumber] ?? getTodoTitle(todoNumber)}
+                            onChange={(e) => handleTodoTitleChange(todoNumber, e.target.value)}
+                            className="font-pixel text-lg text-[#6b5839] bg-transparent border-b border-[#6b5839] focus:outline-none w-40"
+                            disabled={savingTitle[todoNumber] || loadingTitles}
+                          />
+                          <Button
+                            size="sm"
+                            className="ml-2"
+                            onClick={() => saveTodoTitle(todoNumber)}
+                            disabled={savingTitle[todoNumber] || loadingTitles}
+                          >
+                            {savingTitle[todoNumber] ? "Saving..." : "Save"}
+                          </Button>
+                        </>
+                      ) : (
+                        <span className="font-pixel text-lg text-[#6b5839]">{getTodoTitle(todoNumber)}</span>
+                      )}
+                      {isLocked && (
+                        <span className="ml-2 text-[#c0392b] font-pixel flex items-center">
+                          <LockIcon className="w-4 h-4 mr-1" /> Unlock To Do 4
+                        </span>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="list-disc pl-5">
+                      {months[monthIdx].tasks.map((task) => (
+                        <li key={task.id} className="font-pixel text-sm text-[#6b5839]">
+                          {task.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
 
         {/* Add New Task */}
         <div className="flex flex-col sm:flex-row items-center gap-3">

@@ -347,49 +347,6 @@ export async function GET() {
       })
     }
 
-    // Create user_notebooks table if it doesn't exist
-    const { error: notebooksError } = await supabase.rpc("create_user_notebooks_table_if_not_exists")
-
-    if (notebooksError) {
-      results.push({
-        operation: "Create user notebooks table",
-        status: "error",
-        message: notebooksError.message,
-      })
-
-      // Try direct SQL as fallback
-      try {
-        const createTableSQL = `
-          CREATE TABLE IF NOT EXISTS user_notebooks (
-            id SERIAL PRIMARY KEY,
-            profile_id UUID NOT NULL REFERENCES profiles(id),
-            notes TEXT,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-          );
-        `
-
-        await supabase.rpc("exec_sql", { sql: createTableSQL })
-
-        results.push({
-          operation: "Create user notebooks table (direct SQL)",
-          status: "success",
-          message: "User notebooks table created with direct SQL",
-        })
-      } catch (directError) {
-        results.push({
-          operation: "Create user notebooks table (direct SQL)",
-          status: "error",
-          message: "Failed to create with direct SQL",
-        })
-      }
-    } else {
-      results.push({
-        operation: "Create user notebooks table",
-        status: "success",
-        message: "User notebooks table created or already exists",
-      })
-    }
 
     return NextResponse.json({ success: true, results })
   } catch (error: any) {

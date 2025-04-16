@@ -6,16 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/lib/auth-context"
-import { getUserByUsername, sendEncouragement, getCoworkerTasks } from "@/lib/actions"
+import { addCoworker, getCoworkers, removeCoworker, updateScreenSharingPreference, getScreenSharingPreference, checkUserScreenSharingEnabled, inviteCoworkerByEmail } from "@/lib/screenspy-actions"
 import { getSupabaseBrowserClient } from "@/lib/supabase"
-import {
-  addCoworker,
-  getCoworkers,
-  removeCoworker,
-  updateScreenSharingPreference,
-  getScreenSharingPreference,
-  inviteCoworkerByEmail,
-} from "@/lib/social-actions"
 import {
   MessageSquare,
   Users,
@@ -78,7 +70,7 @@ const workHumorMessages = [
   "You're not stuck in a rut, you're establishing a very deep groove of expertise!",
 ]
 
-export default function SocialSystem() {
+export default function ScreenspySystem() {
   const { user } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [friends, setFriends] = useState<Friend[]>([])
@@ -198,7 +190,7 @@ export default function SocialSystem() {
       if (!error && data) {
         // Use profile username if available and not already set to bitpixi
         if (data.username && username !== "bitpixi") {
-          setUsername(data.username)
+          setUsername(typeof data.username === 'string' ? data.username : "")
         }
       }
     }
@@ -230,7 +222,7 @@ export default function SocialSystem() {
         .maybeSingle()
 
       if (!error && data && data.selected_character_id) {
-        setSelectedCharacterId(data.selected_character_id)
+        setSelectedCharacterId(typeof data.selected_character_id === 'number' ? data.selected_character_id : 1)
       }
     } catch (error) {
       console.error("Error loading screen sharing preference:", error)
@@ -268,62 +260,9 @@ export default function SocialSystem() {
     }
   }
 
-  // Add friend
-  const addFriend = async () => {
-    if (!user || !friendUsername.trim()) return
+  
 
-    setError(null)
-    setSuccess(null)
-    setIsAddingFriend(true)
-
-    try {
-      const friend = await getUserByUsername(friendUsername)
-
-      if (!friend) {
-        setError("User not found")
-        return
-      }
-
-      if (friend.id === user.id) {
-        setError("You cannot add yourself as a coworker")
-        return
-      }
-
-      // Check if already a friend
-      if (friends.some((f) => f.id === friend.id)) {
-        setError("Already a coworker")
-        return
-      }
-
-      // Add the coworker relationship to the database
-      const result = await addCoworker(user.id, friend.id)
-
-      if (result.error) {
-        setError(`Failed to add coworker: ${result.error}`)
-        return
-      }
-
-      // Add to the local state
-      setFriends([
-        ...friends,
-        {
-          id: friend.id,
-          username: friend.username,
-          screen_sharing_enabled: false, // Default to false until we know
-        },
-      ])
-
-      setFriendUsername("")
-      setSuccess("Coworker added successfully")
-    } catch (err) {
-      console.error("Error adding friend:", err)
-      setError("Failed to add coworker")
-    } finally {
-      setIsAddingFriend(false)
-    }
-  }
-
-  // Invite a new coworker by email
+// Invite a new coworker by email
   const inviteCoworker = async () => {
     if (!user || !inviteEmail.trim()) return
 
@@ -390,17 +329,6 @@ export default function SocialSystem() {
     setError(null)
 
     try {
-      const result = await sendEncouragement(user.id, selectedFriend.id, "", messageText)
-
-      if (result.error) {
-        console.error("Error sending message:", result.error)
-        setError(`Failed to send message: ${result.error}`)
-        return
-      }
-
-      setMessageText("")
-      setSuccess("Message sent successfully")
-
       // Add the message to the local state (in a real app, you would reload from the database)
       // Use a negative ID for temporary client-side messages to avoid integer range issues
       const tempId = -1 * Math.floor(Math.random() * 1000000)
@@ -443,26 +371,80 @@ export default function SocialSystem() {
     setError(null)
 
     try {
-      const result = await getCoworkerTasks(friendUsername)
+      // Find friend by username using Supabase
+      const supabase = getSupabaseBrowserClient()
+      const { data: friendData, error } = await supabase
+        .from("profiles")
+        .select("id, username")
+        .eq("username", friendUsername)
+        .maybeSingle()
 
-      if (result.error) {
-        setError(result.error)
+      if (error || !friendData || typeof friendData.id !== 'string' || typeof friendData.username !== 'string') {
+        setSharedTasks([])
+        setIsLoadingTasks(false)
+        return
+      }
+
+      // Fetch tasks for the friend
+      const { data: tasks, error: tasksError } = await supabase
+        .from("tasks")
+        .select("id, month_name, month_year, task_name, completed, urgent, optional")
+        .eq("profile_id", friendData.id)
+
+      if (tasksError) {
+        setError(tasksError.message)
         setSharedTasks([])
       } else {
-        setSharedTasks(result.tasks || [])
+        let tasksToShare: any[] = [];
+        if (selectedCoworkerId) {
+          const { data, error } = await supabase
+            .from("tasks")
+            .select("id, month_name, month_year, task_name, completed, urgent, optional")
+            .eq("profile_id", selectedCoworkerId)
+
+          if (error) {
+            setError(error.message)
+            return
+          }
+          if (Array.isArray(data)) {
+            tasksToShare = data;
+          }
+        } else if (Array.isArray(tasks)) {
+          tasksToShare = tasks;
+        }
+        // Share tasks
+        if (Array.isArray(tasksToShare)) {
+          tasksToShare.forEach((task: any) => {
+            setSharedTasks((prevTasks) => [...prevTasks, {
+              id: task.id as number | string,
+              month_name: String(task.month_name),
+              month_year: Number(task.month_year),
+              task_name: String(task.task_name),
+              completed: Boolean(task.completed),
+              urgent: task.urgent ? Boolean(task.urgent) : undefined,
+              optional: task.optional ? Boolean(task.optional) : undefined,
+            }])
+          });
+        }
+          optional: t.optional ? Boolean(t.optional) : undefined,
+        })) : [])
       }
     } catch (err) {
       console.error("Error getting coworker tasks:", err)
       setError("Failed to access coworker's screen")
+      setSharedTasks([])
     } finally {
       setIsLoadingTasks(false)
     }
   }
 
-  // Modify the toggleScreenSharing function to ensure it works on mobile
-  const toggleScreenSharing = async () => {
-    if (!user) return
+  // Add friend
+  const addFriend = async () => {
+    if (!user || !friendUsername.trim()) return
 
+    setError(null)
+    setSuccess(null)
+    setIsAddingFriend(true)
     setIsUpdatingSharing(true)
     setSharingStatus(
       sharingEnabled ? "Disabling screensharing your to-do list..." : "Enabling screensharing your to-do list...",
@@ -1163,6 +1145,30 @@ export default function SocialSystem() {
                   >
                     <Send className="h-4 w-4" />
                     Encourage
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setIsUpdatingSharing(true);
+                      setSharingStatus(
+                        sharingEnabled ? "Disabling screensharing your to-do list..." : "Enabling screensharing your to-do list..."
+                      );
+                      updateScreenSharingPreference(user?.id, !sharingEnabled)
+                        .then(() => {
+                          setSharingEnabled(!sharingEnabled);
+                          setSharingStatus(null);
+                        })
+                        .catch((error) => {
+                          setError("Failed to update sharing preference");
+                          setSharingStatus(null);
+                        })
+                        .finally(() => {
+                          setIsUpdatingSharing(false);
+                        });
+                    }}
+                  >
+                    {sharingEnabled ? "Disable Sharing" : "Enable Sharing"}
                   </Button>
                 </CardContent>
               </Card>
