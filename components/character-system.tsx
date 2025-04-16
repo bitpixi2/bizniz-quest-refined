@@ -18,7 +18,7 @@ import {
   Baby,
   Coffee,
   Sparkles,
-  Pizza,
+  Apple,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { saveCharacterData, loadUserData } from "@/lib/actions"
@@ -303,8 +303,8 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
       name: "SNACK TIME",
       level: 0,
       maxLevel: 5,
-      description: "The sacred ritual of staring into the fridge every 20 minutes hoping food materializes",
-      icon: <Pizza className="h-5 w-5 text-yellow-500" />,
+      description: "Convincing yourself that kale chips are just as satisfying as potato chips",
+      icon: <Apple className="h-5 w-5 text-green-500" />, // Changed from Pizza to Apple with green color
     },
   ])
 
@@ -363,7 +363,7 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
             level: 0,
             maxLevel: 5,
             description: "The sacred ritual of staring into the fridge every 20 minutes hoping food materializes",
-            icon: <Pizza className="h-5 w-5 text-yellow-500" />,
+            icon: <Apple className="h-5 w-5 text-green-500" />, // Changed from Pizza to Apple
           })
         }
 
@@ -451,7 +451,7 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
       case "dependents":
         return <Baby className="h-5 w-5 text-pink-500" />
       case "snack-time":
-        return <Pizza className="h-5 w-5 text-yellow-500" />
+        return <Apple className="h-5 w-5 text-green-500" /> // Changed from Pizza to Apple
       default:
         return <Sparkles className="h-5 w-5 text-gray-500" />
     }

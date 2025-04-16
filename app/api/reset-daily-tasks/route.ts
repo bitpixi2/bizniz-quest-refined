@@ -27,23 +27,20 @@ export async function GET(request: Request) {
       })
     }
 
-    // Update tasks one month at a time
-    for (const monthId of monthIds) {
-      const query = supabase.from("tasks")
-      const { error: updateError } = await (query as any)
+    if (monthIds.length > 0) {
+      const { data, error } = await supabase
+        .from("tasks")
         .update({
           completed: false,
           updated_at: new Date().toISOString(),
         })
-        .eq('month_id', monthId)
+        .filter("month_id", "in", monthIds)
 
-      if (updateError) {
-        console.error(`Error updating tasks for month ${monthId}:`, updateError)
-        return NextResponse.json({ error: updateError.message }, { status: 500 })
+      if (error) {
+        console.error("Error resetting daily tasks:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
       }
     }
-
-
 
     return NextResponse.json({
       success: true,

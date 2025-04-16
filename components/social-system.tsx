@@ -193,13 +193,11 @@ export default function SocialSystem() {
     const fetchProfileData = async () => {
       const supabase = getSupabaseBrowserClient()
       const { data, error } = await supabase.from("profiles").select("username").eq("id", user.id).single()
-      type ProfileData = { username: string }
-      const typedData = data as ProfileData | null
 
-      if (!error && typedData) {
+      if (!error && data) {
         // Use profile username if available and not already set to bitpixi
-        if (typedData.username && username !== "bitpixi") {
-          setUsername(typedData.username)
+        if (data.username && username !== "bitpixi") {
+          setUsername(data.username)
         }
       }
     }
@@ -498,8 +496,6 @@ export default function SocialSystem() {
   // Enable task sharing
   const enableTaskSharing = async () => {
     if (!user) return
-    const supabase = getSupabaseBrowserClient()
-    if (!user) return
 
     try {
       // First, directly create tasks_shared entries using Supabase client
@@ -558,51 +554,31 @@ export default function SocialSystem() {
       }
 
       // Insert tasks into tasks_shared
-      let tasksToShare: SharedTask[] = []
-      // Process month tasks if they exist
-      if (monthTasks && Array.isArray(monthTasks)) {
-        for (const month of monthTasks) {
-          if (!month || typeof month.name !== 'string' || typeof month.year !== 'number') continue
-          
-          const tasks = month.tasks
-          if (!Array.isArray(tasks)) continue
-
-          for (const task of tasks) {
-            if (!task || typeof task.name !== 'string' || typeof task.completed !== 'boolean') continue
-
-            tasksToShare.push({
-              id: `${month.name}-${task.name}`,
-              month_name: month.name,
-              month_year: month.year,
-              task_name: task.name,
-              completed: task.completed,
-              urgent: !!task.urgent,
-              optional: !!task.optional
-            })
-          }
-        }
-      }
+      const tasksToShare = []
+      monthTasks?.forEach((month) => {
+        month.tasks.forEach((task) => {
+          tasksToShare.push({
+            profile_id: user.id,
+            month_name: month.name,
+            month_year: month.year,
+            task_name: task.name,
+            completed: task.completed,
+            urgent: task.urgent || false,
+            optional: task.optional || false,
+          })
+        })
+      })
 
       if (tasksToShare.length > 0) {
         // Insert in smaller batches to avoid potential payload size issues
         const batchSize = 50
         for (let i = 0; i < tasksToShare.length; i += batchSize) {
           const batch = tasksToShare.slice(i, i + batchSize)
-          const { data: tasksSharedData, error: tasksSharedError } = await supabase.from("tasks_shared").insert(
-            batch.map((task) => ({
-              profile_id: user.id,
-              month_name: task.month_name,
-              month_year: task.month_year,
-              task_name: task.task_name,
-              completed: task.completed,
-              urgent: task.urgent,
-              optional: task.optional,
-            }))
-          )
+          const { error: insertError } = await supabase.from("tasks_shared").insert(batch)
 
-          if (tasksSharedError) {
-            console.error("Error sharing tasks batch:", tasksSharedError)
-            return { error: tasksSharedError.message }
+          if (insertError) {
+            console.error("Error sharing tasks batch:", insertError)
+            return { error: insertError.message }
           }
         }
       }
@@ -637,12 +613,7 @@ export default function SocialSystem() {
 
   // Function to manually refresh sharing status
   const refreshSharingStatus = () => {
-    if (!user) return
-    getScreenSharingPreference(user.id).then((result) => {
-      if (!result.error && result.enabled !== undefined) {
-        setSharingEnabled(result.enabled)
-      }
-    })
+    loadScreenSharingPreference()
   }
 
   return (

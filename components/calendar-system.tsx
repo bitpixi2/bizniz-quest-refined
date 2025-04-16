@@ -11,27 +11,16 @@ import { saveMonths, loadUserData } from "@/lib/actions"
 import { useSupabaseClient } from "@supabase/auth-helpers-react"
 import { useIsMobile } from "@/hooks/use-mobile"
 
-interface MonthTask {
-  id: string
-  name: string
-  completed: boolean
-  optional?: boolean
-  position: number
-}
-
-interface MonthTaskInput {
-  id: string
-  name: string
-  completed: boolean
-  position?: number
-}
-
 interface MonthData {
   name: string
   year: number
   unlocked: boolean
   completed: boolean
-  tasks: MonthTask[]
+  tasks: {
+    id: string
+    name: string
+    completed: boolean
+  }[]
 }
 
 export default function CalendarSystem() {
@@ -177,7 +166,7 @@ export default function CalendarSystem() {
 
         // Create a map of month names to loaded months
         const loadedMonthsMap = new Map()
-        data.months.forEach((month: { name: string; year: number }) => {
+        data.months.forEach((month) => {
           loadedMonthsMap.set(`${month.name}-${month.year}`, month)
         })
 
@@ -353,18 +342,17 @@ export default function CalendarSystem() {
     const monthIndex = months.findIndex((m) => m.name === selectedMonth.name && m.year === selectedMonth.year)
     if (monthIndex === -1) return
 
-    const newTask: MonthTask = {
+    const newTask = {
       id: `task_${nextTaskId}`,
-      name: newTaskName.trim(),
+      name: newTaskName,
       completed: false,
-      position: months[monthIndex].tasks.length
     }
 
     const newMonths = [...months]
     newMonths[monthIndex].tasks.push(newTask)
     setMonths(newMonths)
-    setNextTaskId(nextTaskId + 1)
     setNewTaskName("")
+    setNextTaskId(nextTaskId + 1)
   }
 
   const deleteTask = (taskId: string) => {
@@ -422,6 +410,7 @@ export default function CalendarSystem() {
     // Reorder the tasks
     const [draggedTask] = tasks.splice(draggedTaskIndex, 1)
     tasks.splice(targetTaskIndex, 0, draggedTask)
+
     newMonths[monthIndex].tasks = tasks
     setMonths(newMonths)
   }
@@ -449,12 +438,17 @@ export default function CalendarSystem() {
         el.classList.remove("task-drag-over")
       }
     })
+  }
 
-    let targetTaskId: string | null = null
+  const handleTouchEnd = (e: React.TouchEvent, taskId: string) => {
+    if (!touchedTaskId) return
+
+    const elements = document.querySelectorAll(".task-item")
+    let targetTaskId = null
+
     elements.forEach((el) => {
       if (el.classList.contains("task-drag-over")) {
-        const id = el.getAttribute("data-task-id")
-        if (id) targetTaskId = id
+        targetTaskId = el.getAttribute("data-task-id")
         el.classList.remove("task-drag-over")
       }
     })

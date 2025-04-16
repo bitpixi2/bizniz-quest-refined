@@ -56,12 +56,12 @@ export default function ArchiveSystem() {
           await new Promise((resolve) => setTimeout(resolve, 500))
         }
 
-        if (tasksResult?.error) {
+        if (tasksResult.error) {
           console.error("Error loading archived tasks:", tasksResult.error)
           setError(`Error loading archived tasks: ${tasksResult.error}`)
         } else {
           // Filter out any Daily Tasks that might have been archived before this change
-          const filteredTasks = (tasksResult?.tasks || []).filter((task: ArchivedTask) => task.month_name !== "Daily Tasks")
+          const filteredTasks = (tasksResult.tasks || []).filter((task) => task.month_name !== "Daily Tasks")
           setArchivedTasks(filteredTasks)
 
           // Save to localStorage for other components to access
@@ -80,13 +80,13 @@ export default function ArchiveSystem() {
           await new Promise((resolve) => setTimeout(resolve, 500))
         }
 
-        if (messagesResult?.error) {
+        if (messagesResult.error) {
           console.error("Error loading archived messages:", messagesResult.error)
           if (!error) {
             setError(`Error loading archived messages: ${messagesResult.error}`)
           }
-        } else if (messagesResult?.messages) {
-          setArchivedMessages(messagesResult.messages)
+        } else {
+          setArchivedMessages(messagesResult.messages || [])
         }
       } catch (err) {
         console.error("Error loading archived data:", err)
