@@ -426,8 +426,6 @@ export default function ScreenspySystem() {
             }])
           });
         }
-          optional: t.optional ? Boolean(t.optional) : undefined,
-        })) : [])
       }
     } catch (err) {
       console.error("Error getting coworker tasks:", err)
