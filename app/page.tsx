@@ -31,9 +31,9 @@ export default function Home() {
                 Character
               </Button>
             </Link>
-            <Link href="/map">
+            <Link href="/notebook">
               <Button className="bg-[#ffe9b3] text-[#6b5839] border-2 border-[#6b5839] hover:bg-[#f0e6d2] font-pixel pixel-borders">
-                Map
+                Notebook
               </Button>
             </Link>
             <Link href="/inventory">
@@ -44,11 +44,6 @@ export default function Home() {
             <Link href="/social">
               <Button className="bg-[#ffe9b3] text-[#6b5839] border-2 border-[#6b5839] hover:bg-[#f0e6d2] font-pixel pixel-borders">
                 Social
-              </Button>
-            </Link>
-            <Link href="/archive">
-              <Button className="bg-[#ffe9b3] text-[#6b5839] border-2 border-[#6b5839] hover:bg-[#f0e6d2] font-pixel pixel-borders">
-                Archive
               </Button>
             </Link>
           </div>

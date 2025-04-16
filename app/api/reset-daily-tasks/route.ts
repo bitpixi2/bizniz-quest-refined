@@ -1,7 +1,14 @@
-import { createServerClient } from "@/lib/supabase"
 import { NextResponse } from "next/server"
 
 export async function GET(request: Request) {
+  // Commented out as not connected to any real cron jobs yet
+  return NextResponse.json({
+    success: true,
+    message: `API route disabled - not connected to cron jobs yet`,
+    timestamp: new Date().toISOString(),
+  })
+
+  /* 
   try {
     const supabase = createServerClient()
 
@@ -51,4 +58,5 @@ export async function GET(request: Request) {
     console.error("Error in reset-daily-tasks:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
+  */
 }

@@ -101,6 +101,7 @@ export default function SocialSystem() {
   const [isRemovingFriend, setIsRemovingFriend] = useState(false)
   const [isUpdatingSharing, setIsUpdatingSharing] = useState(false)
   const [isInviting, setIsInviting] = useState(false)
+  const [selectedCharacterId, setSelectedCharacterId] = useState<number>(1)
 
   const isMobile = useIsMobile()
 
@@ -206,7 +207,12 @@ export default function SocialSystem() {
     loadScreenSharingPreference()
   }, [user])
 
-  // Load screen sharing preference
+  // Function to get character sprite based on selected character ID
+  const getCharacterSprite = (id: number) => {
+    return `/images/pixel-char${id || 1}.png`
+  }
+
+  // Load screen sharing preference and character selection
   const loadScreenSharingPreference = async () => {
     if (!user) return
     setIsCheckingSharing(true)
@@ -214,6 +220,18 @@ export default function SocialSystem() {
     try {
       const { enabled } = await getScreenSharingPreference(user.id)
       setSharingEnabled(enabled)
+
+      // Also load the selected character ID
+      const supabase = getSupabaseBrowserClient()
+      const { data, error } = await supabase
+        .from("life_balance")
+        .select("selected_character_id")
+        .eq("profile_id", user.id)
+        .maybeSingle()
+
+      if (!error && data && data.selected_character_id) {
+        setSelectedCharacterId(data.selected_character_id)
+      }
     } catch (error) {
       console.error("Error loading screen sharing preference:", error)
     } finally {
@@ -630,9 +648,9 @@ export default function SocialSystem() {
             </div>
             <div className="w-10 h-10 rounded-full bg-[#f0e6d2] border-2 border-[#6b5839] pixel-borders flex items-center justify-center overflow-hidden">
               <img
-                src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`}
-                alt="Avatar"
-                className="w-8 h-8 pixelated"
+                src={getCharacterSprite(selectedCharacterId) || "/placeholder.svg"}
+                alt="Character"
+                className="w-10 h-10 pixelated"
               />
             </div>
           </div>

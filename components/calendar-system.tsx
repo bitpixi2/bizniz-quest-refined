@@ -501,6 +501,9 @@ export default function CalendarSystem() {
       }),
     )
 
+    // Clear any completion message
+    setMessage("")
+
     // Update the last reset date
     localStorage.setItem("bizquest-daily-reset", new Date().toISOString().split("T")[0])
     setSyncMessage("Daily tasks have been reset!")
@@ -617,7 +620,7 @@ export default function CalendarSystem() {
           <h3 className="text-xl font-pixel text-[#6b5839]">
             {selectedMonth.name === "Daily Tasks" ? "Daily Tasks" : `${selectedMonth.name} ${selectedMonth.year} Tasks`}
           </h3>
-          <div className="flex gap-2">
+          <div className="flex gap-4">
             {selectedMonth.name === "Daily Tasks" && (
               <Button
                 onClick={resetDailyTasks}

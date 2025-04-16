@@ -88,7 +88,7 @@ export default function UserProfile() {
 
   // Get character sprite based on selected character ID
   const getCharacterSprite = (id: number) => {
-    return `/images/pixel-char${id}.png`
+    return `/images/pixel-char${id || 1}.png`
   }
 
   return (

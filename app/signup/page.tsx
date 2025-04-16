@@ -1,5 +1,6 @@
 import SignupForm from "@/components/auth/signup-form"
 import FloatingItems from "@/components/floating-items"
+import BackgroundMusic from "@/components/background-music"
 import { Suspense } from "react"
 
 // Simple loading component
@@ -15,6 +16,7 @@ export default function SignupPage() {
   return (
     <main className="min-h-screen p-6 md:p-8 flex items-center justify-center relative">
       <FloatingItems />
+      <BackgroundMusic />
       <div className="w-full max-w-md z-10">
         <h1 className="text-4xl font-pixel text-center mb-8 text-[#d75e38] pixel-text">Bizniz Quest</h1>
         <Suspense fallback={<Loading />}>

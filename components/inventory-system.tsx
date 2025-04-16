@@ -3,179 +3,160 @@
 import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-interface HotdogItem {
+interface KeyboardItem {
   id: number
   name: string
   description: string
   image: string
   acquired: boolean
-  count: number // Added count property
 }
 
 export default function InventorySystem() {
-  // Hotdog inventory items with random counts
-  const [hotdogs, setHotdogs] = useState<HotdogItem[]>([
+  // Keyboard keys inventory items without counts
+  const [keyboardItems, setKeyboardItems] = useState<KeyboardItem[]>([
     {
       id: 1,
-      name: "Classic Hotdog",
-      description: "The original. Simple ketchup on a juicy hotdog.",
-      image: "/images/hotdog1.png",
+      name: "Escape Key",
+      description: "For when you need to exit a situation quickly.",
+      image: "/illuminated-escape-key.png",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1, // Random count between 1-10
     },
     {
       id: 2,
-      name: "Mustard Dog",
-      description: "A tangy twist on the classic with yellow mustard.",
-      image: "/images/hotdog2.png",
+      name: "Enter Key",
+      description: "Confirms your decisions, for better or worse.",
+      image: "/illuminated-enter-key.png",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 3,
-      name: "Relish Dog",
-      description: "Sweet pickle relish adds a crunchy, tangy kick.",
-      image: "/images/hotdog3.png",
+      name: "Space Bar",
+      description: "Creates breathing room between your thoughts.",
+      image: "/keyboard-spacebar-close-up.png",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 4,
-      name: "Chili Dog",
-      description: "Topped with spicy chili - a hearty classic.",
-      image: "/images/hotdog4.png",
+      name: "Shift Key",
+      description: "Changes your perspective on things.",
+      image: "/keyboard-shift-key-close-up.png",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 5,
-      name: "Cheese Dog",
-      description: "Melted cheese makes everything better.",
-      image: "/images/hotdog5.png",
+      name: "Ctrl Key",
+      description: "Helps you take control of the situation.",
+      image: "/control-key-close-up.png",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 6,
-      name: "Sauerkraut Dog",
-      description: "Tangy fermented cabbage for a German twist.",
-      image: "/images/hotdog6.png",
+      name: "Alt Key",
+      description: "Offers alternative solutions to problems.",
+      image: "/alt-key-close-up.png",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 7,
-      name: "Bacon Dog",
-      description: "Wrapped in crispy bacon for extra flavor.",
-      image: "/images/hotdog7.png",
+      name: "Tab Key",
+      description: "Organizes your thoughts neatly.",
+      image: "/keyboard-tab-key-close-up.png",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 8,
-      name: "Jalapeño Dog",
-      description: "Spicy jalapeños for those who like it hot.",
-      image: "/images/hotdog8.png",
+      name: "Caps Lock",
+      description: "MAKES EVERYTHING SEEM MORE IMPORTANT.",
+      image: "/illuminated-caps-lock.png",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 9,
-      name: "BBQ Dog",
-      description: "Sweet and smoky BBQ sauce for a Southern touch.",
-      image: "/images/hotdog9.png",
+      name: "Backspace",
+      description: "Erases your mistakes, if only life were so simple.",
+      image: "/backspace-key-close-up.png",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 10,
-      name: "Grape Jelly Dog",
-      description: "A surprisingly sweet and savory combination.",
-      image: "/images/hotdog10.png",
+      name: "Delete Key",
+      description: "For permanently removing obstacles in your path.",
+      image: "/keyboard-delete-closeup.png",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 11,
-      name: "Coleslaw Dog",
-      description: "Topped with creamy, crunchy coleslaw.",
-      image: "/images/hotdog11.png",
+      name: "Arrow Keys",
+      description: "Navigate through life's challenges.",
+      image: "/placeholder.svg?height=48&width=48&query=keyboard arrow keys",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 12,
-      name: "Mac & Cheese Dog",
-      description: "Comfort food on comfort food. What's not to love?",
-      image: "/images/hotdog12.png",
+      name: "Function Key",
+      description: "Serves special purposes when you need them most.",
+      image: "/placeholder.svg?height=48&width=48&query=keyboard function key",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 13,
-      name: "Guacamole Dog",
-      description: "Creamy avocado goodness with a Mexican flair.",
-      image: "/images/hotdog13.png",
+      name: "Number Key",
+      description: "For counting your successes (and occasional failures).",
+      image: "/placeholder.svg?height=48&width=48&query=keyboard number key",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 14,
-      name: "Peanut Butter Dog",
-      description: "A unique sweet and savory experience.",
-      image: "/images/hotdog14.png",
+      name: "Home Key",
+      description: "Takes you back to where you started.",
+      image: "/placeholder.svg?height=48&width=48&query=keyboard home key",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 15,
-      name: "Sriracha Dog",
-      description: "Spicy Thai-style hot sauce for heat lovers.",
-      image: "/images/hotdog15.png",
+      name: "End Key",
+      description: "Jumps to the conclusion, sometimes prematurely.",
+      image: "/placeholder.svg?height=48&width=48&query=keyboard end key",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 16,
-      name: "Fried Onion Dog",
-      description: "Crispy fried onions add texture and flavor.",
-      image: "/images/hotdog16.png",
+      name: "Page Up",
+      description: "Helps you review what came before.",
+      image: "/placeholder.svg?height=48&width=48&query=keyboard page up key",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 17,
-      name: "Kimchi Dog",
-      description: "Korean fermented cabbage for an umami punch.",
-      image: "/images/hotdog17.png",
+      name: "Page Down",
+      description: "Shows you what's coming next.",
+      image: "/placeholder.svg?height=48&width=48&query=keyboard page down key",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 18,
-      name: "Honey Mustard Dog",
-      description: "Sweet and tangy honey mustard sauce.",
-      image: "/images/hotdog18.png",
+      name: "Print Screen",
+      description: "Captures moments worth remembering.",
+      image: "/placeholder.svg?height=48&width=48&query=keyboard print screen key",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 19,
-      name: "Truffle Mayo Dog",
-      description: "Luxurious truffle-infused mayonnaise for the gourmet.",
-      image: "/images/hotdog19.png",
+      name: "Scroll Lock",
+      description: "A mysterious relic from the ancient times.",
+      image: "/placeholder.svg?height=48&width=48&query=keyboard scroll lock key",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
     {
       id: 20,
-      name: "Rainbow Dog",
-      description: "A colorful celebration of all flavors!",
-      image: "/images/hotdog20.png",
+      name: "Pause Break",
+      description: "Reminds you to take a moment for yourself.",
+      image: "/placeholder.svg?height=48&width=48&query=keyboard pause break key",
       acquired: true,
-      count: Math.floor(Math.random() * 10) + 1,
     },
   ])
+
+  const [selectedItem, setSelectedItem] = useState<KeyboardItem | null>(null)
 
   return (
     <div className="p-4 bg-[#f8f3e3] rounded-lg max-w-5xl mx-auto border-4 border-[#6b5839] pixel-borders">
@@ -185,37 +166,63 @@ export default function InventorySystem() {
 
       <Card className="bg-[#ffe9b3] border-4 border-[#6b5839] pixel-borders">
         <CardHeader className="p-4 pb-0">
-          <CardTitle className="text-xl font-pixel text-[#6b5839]">Hotdog Collection</CardTitle>
+          <CardTitle className="text-xl font-pixel text-[#6b5839]">Keyboard Collection</CardTitle>
           <CardDescription className="font-pixel text-xs text-[#6b5839]">
-            Your delicious business rewards
+            Your business productivity rewards
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {hotdogs.map((hotdog) => (
-              <div
-                key={hotdog.id}
-                className={`relative cursor-pointer p-3 rounded-lg border-2 
-                  border-[#6b5839] bg-[#f0e6d2] pixel-borders transition-all hover:bg-[#e9dfc7]`}
-              >
-                <div className="relative">
-                  <img
-                    src={hotdog.image || "/placeholder.svg?height=48&width=48"}
-                    alt={hotdog.name}
-                    className={`w-full h-16 object-contain pixelated ${!hotdog.acquired ? "opacity-60" : ""}`}
-                  />
-                  {/* Count indicator - only show if count > 1 */}
-                  {hotdog.count > 1 && (
-                    <div className="absolute top-0 right-0 bg-[#7cb518] text-white w-6 h-6 flex items-center justify-center font-pixel text-xs border-2 border-[#6b5839] pixel-borders">
-                      {hotdog.count}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {/* Details area in the top right - takes up space of 4 key modules */}
+            <div className="md:col-span-1 md:row-span-2 md:col-start-5 md:row-start-1 order-1 md:order-1">
+              <div className="h-full bg-[#f0e6d2] rounded-lg border-2 border-[#6b5839] pixel-borders p-3">
+                <h3 className="font-pixel text-sm text-[#6b5839] mb-2">Key Details</h3>
+                {selectedItem ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-center mb-2">
+                      <img
+                        src={selectedItem.image || "/placeholder.svg"}
+                        alt={selectedItem.name}
+                        className="w-16 h-16 object-contain pixelated"
+                      />
                     </div>
-                  )}
-                </div>
-                <p className="font-pixel text-xs text-center mt-2 text-[#6b5839] min-h-[2.5rem] line-clamp-2">
-                  {hotdog.name}
-                </p>
+                    <h4 className="font-pixel text-xs text-[#6b5839] text-center">{selectedItem.name}</h4>
+                    <p className="font-pixel text-xs text-[#6b5839] text-center">{selectedItem.description}</p>
+                  </div>
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="font-pixel text-xs text-[#6b5839] text-center">Select a key to view details</p>
+                  </div>
+                )}
               </div>
-            ))}
+            </div>
+
+            {/* Keyboard items grid */}
+            <div className="md:col-span-4 order-2 md:order-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {keyboardItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className={`relative cursor-pointer p-3 rounded-lg border-2 
+                      ${selectedItem?.id === item.id ? "border-[#7cb518] bg-[#d4e09b]" : "border-[#6b5839] bg-[#f0e6d2]"} 
+                      pixel-borders transition-all hover:bg-[#e9dfc7]`}
+                    onClick={() => setSelectedItem(item)}
+                  >
+                    <div className="relative">
+                      <img
+                        src={item.image || "/placeholder.svg"}
+                        alt={item.name}
+                        className={`w-full h-16 object-contain pixelated ${!item.acquired ? "opacity-60" : ""}`}
+                      />
+                      {/* Removed the count indicator */}
+                    </div>
+                    <p className="font-pixel text-xs text-center mt-2 text-[#6b5839] min-h-[2.5rem] line-clamp-2">
+                      {item.name}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
