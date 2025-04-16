@@ -35,11 +35,11 @@ export default function UserProfile() {
             // Fallback to email prefix if profile fetch fails
             const emailPrefix = user.email?.split("@")[0] || "user"
             setUsername(emailPrefix)
-          } else if (profileData) {
+          } else if (profileData && typeof profileData.username === "string") {
             setUsername(profileData.username)
 
             // Format join date
-            if (profileData.created_at) {
+            if (typeof profileData.created_at === "string") {
               const date = new Date(profileData.created_at)
               setJoinDate(
                 date.toLocaleDateString("en-US", {
@@ -58,7 +58,11 @@ export default function UserProfile() {
             .eq("profile_id", user.id)
             .maybeSingle()
 
-          if (!lifeBalanceError && lifeBalanceData && lifeBalanceData.selected_character_id) {
+          if (
+            !lifeBalanceError &&
+            lifeBalanceData &&
+            typeof lifeBalanceData.selected_character_id === "number"
+          ) {
             setSelectedCharacterId(lifeBalanceData.selected_character_id)
           }
         } catch (err) {
