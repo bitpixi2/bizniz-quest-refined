@@ -1,0 +1,46 @@
+/* Pixel Border Styles */
+.pixel-borders {
+  position: relative;
+  box-shadow: -4px 0 0 0 #000, 4px 0 0 0 #000, 0 -4px 0 0 #000, 0 4px 0 0 #000;
+}
+
+.pixel-borders::before {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #000;
+  top: -4px;
+  left: -4px;
+  box-shadow:
+    4px 0 0 0 #000,
+    0 4px 0 0 #000,
+    4px 4px 0 0 #000,
+    calc(100% - 4px) 0 0 0 #000,
+    calc(100% - 4px) 4px 0 0 #000,
+    calc(100%) 0 0 0 #000,
+    calc(100%) 4px 0 0 #000,
+    0 calc(100% - 4px) 0 0 #000,
+    4px calc(100% - 4px) 0 0 #000,
+    0 calc(100%) 0 0 #000,
+    4px calc(100%) 0 0 #000,
+    calc(100% - 4px) calc(100% - 4px) 0 0 #000,
+    calc(100%) calc(100% - 4px) 0 0 #000,
+    calc(100% - 4px) calc(100%) 0 0 #000,
+    calc(100%) calc(100%) 0 0 #000;
+}
+
+.pixel-text {
+  text-shadow: 2px 2px 0 #000, -2px 2px 0 #000, 2px -2px 0 #000, -2px -2px 0 #000;
+  font-family: "PixelFont", monospace;
+  letter-spacing: 1px;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+/* Enhanced pixelated rendering */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}

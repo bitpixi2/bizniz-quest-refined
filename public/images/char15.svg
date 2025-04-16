@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16">
+  <!-- Product Manager -->
+  <rect width="16" height="16" fill="#e8f8f5" />
+  <!-- Face -->
+  <rect x="4" y="3" width="8" height="10" fill="#ffb385" />
+  <!-- Hair -->
+  <rect x="4" y="3" width="8" height="2" fill="#935116" />
+  <!-- Eyes -->
+  <rect x="5" y="6" width="2" height="1" fill="#000000" />
+  <rect x="9" y="6" width="2" height="1" fill="#000000" />
+  <!-- Mouth -->
+  <rect x="6" y="9" width="4" height="1" fill="#000000" />
+  <!-- Product Manager Outfit -->
+  <rect x="4" y="13" width="8" height="3" fill="#16a085" />
+  <rect x="6" y="13" width="4" height="1" fill="#1abc9c" />
+</svg>

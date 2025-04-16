@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 16 16">
+  <!-- Data Scientist -->
+  <rect width="16" height="16" fill="#ebf5fb" />
+  <!-- Face -->
+  <rect x="4" y="3" width="8" height="10" fill="#ffb385" />
+  <!-- Hair -->
+  <rect x="4" y="3" width="8" height="2" fill="#2c3e50" />
+  <rect x="3" y="3" width="1" height="4" fill="#2c3e50" />
+  <rect x="12" y="3" width="1" height="4" fill="#2c3e50" />
+  <!-- Glasses -->
+  <rect x="4" y="6" width="8" height="1" fill="#444444" />
+  <rect x="5" y="6" width="2" height="1" fill="#3498db" />
+  <rect x="9" y="6" width="2" height="1" fill="#3498db" />
+  <!-- Mouth -->
+  <rect x="7" y="9" width="2" height="1" fill="#000000" />
+  <!-- Data Scientist Outfit -->
+  <rect x="4" y="13" width="8" height="3" fill="#3498db" />
+  <rect x="6" y="13" width="4" height="1" fill="#2980b9" />
+</svg>
