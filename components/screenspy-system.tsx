@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
@@ -37,6 +37,10 @@ export default function ScreenspySystem() {
   const [sharingEnabled, setSharingEnabled] = useState(false);
   const [sharingStatus, setSharingStatus] = useState<string | null>(null);
 
+  // Sound refs for toggle
+  const toggleOnRef = useRef<HTMLAudioElement | null>(null);
+  const toggleOffRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
     if (!user) return;
     const fetchCoworkers = async () => {
@@ -47,8 +51,7 @@ export default function ScreenspySystem() {
         const { data, error } = await supabase
           .from("profiles")
           .select("id, username, screen_sharing_enabled")
-          .eq("screen_sharing_enabled", true)
-          .neq("id", user.id);
+          .neq("id", user.id); // Show all users except self, regardless of sharing status
         if (error) throw error;
         const friends = Array.isArray(data)
           ? data.map((c) => ({
@@ -88,6 +91,14 @@ export default function ScreenspySystem() {
 
   const handleToggleSharing = async () => {
     if (!user) return;
+    // Play the appropriate sound for the new state
+    if (!sharingEnabled && toggleOnRef.current) {
+      toggleOnRef.current.currentTime = 0;
+      toggleOnRef.current.play();
+    } else if (sharingEnabled && toggleOffRef.current) {
+      toggleOffRef.current.currentTime = 0;
+      toggleOffRef.current.play();
+    }
     setSharingStatus(sharingEnabled ? "Disabling sharing..." : "Enabling sharing...");
     try {
       const supabase = getSupabaseBrowserClient();
@@ -159,17 +170,36 @@ export default function ScreenspySystem() {
 
   return (
     <div className="p-6 bg-white border-4 border-[#6b5839] pixel-borders max-w-5xl mx-auto">
+      {/* Audio elements for toggle sounds */}
+      <audio ref={toggleOnRef} src="/sounds/toggle_on.mp3" preload="auto" />
+      <audio ref={toggleOffRef} src="/sounds/toggle_off.mp3" preload="auto" />
+
       {/* Sharing Toggle */}
       <div className="flex flex-col items-center mb-8">
-        <Button
-          onClick={handleToggleSharing}
-          disabled={!!sharingStatus}
-          className={`font-pixel text-lg px-6 py-3 rounded border-2 ${
-            sharingEnabled ? "bg-[#7cb518] text-white border-[#6b5839]" : "bg-[#d0c8b0] text-[#6b5839] border-[#6b5839]"
-          } mb-2`}
-        >
-          {sharingEnabled ? "Disable Screen Sharing" : "Enable Screen Sharing"}
-        </Button>
+        <div className="flex items-center gap-4 bg-[#ffe9b3] border-4 border-[#6b5839] pixel-borders px-6 py-4">
+          <span className="font-pixel text-lg text-[#6b5839] pixel-text">Screen Sharing</span>
+          <button
+            onClick={handleToggleSharing}
+            disabled={!!sharingStatus}
+            className={`w-16 h-8 border-2 border-[#6b5839] pixel-borders bg-transparent flex items-center relative focus:outline-none transition-colors duration-200 ${
+              sharingEnabled ? 'bg-[#7cb518]' : 'bg-[#d0c8b0]'
+            }`}
+            aria-pressed={sharingEnabled}
+            style={{ borderRadius: 0, padding: 0 }}
+          >
+            <span
+              className={`absolute top-1 left-1 w-6 h-6 bg-white border-2 border-[#6b5839] pixel-borders transition-transform duration-200 ${
+                sharingEnabled ? 'translate-x-8' : ''
+              }`}
+              style={{ borderRadius: 0 }}
+            />
+          </button>
+        </div>
+        <div className="mt-2 text-[#6b5839] font-pixel text-sm text-center max-w-lg">
+          {sharingEnabled
+            ? "When enabled, your To Do tasks are visible to anyone logged in."
+            : "Your To Do tasks are private and not visible to others."}
+        </div>
         {sharingStatus && <div className="mt-2 text-[#6b5839] font-pixel text-sm">{sharingStatus}</div>}
       </div>
 
@@ -221,7 +251,7 @@ export default function ScreenspySystem() {
           coworkers.map((coworker) => (
             <div
               key={coworker.id}
-              className="flex flex-col items-center bg-white border-4 border-[#6b5839] pixel-borders rounded-lg p-4 min-w-[180px] shadow-md"
+              className="flex flex-col items-center bg-[#ffe9b3] border-4 border-[#6b5839] pixel-borders rounded-lg p-4 min-w-[180px] shadow-md"
             >
               <span className="font-pixel text-lg text-[#6b5839] mb-2">{coworker.username}</span>
               <Button
@@ -239,7 +269,7 @@ export default function ScreenspySystem() {
 
       {/* Invite Coworker */}
       <div className="flex justify-center">
-        <div className="bg-white border-4 border-[#6b5839] pixel-borders rounded-lg p-6 max-w-md w-full text-center">
+        <div className="bg-[#ffe9b3] border-4 border-[#6b5839] pixel-borders rounded-lg p-6 max-w-md w-full text-center">
           <h3 className="font-pixel text-xl text-[#6b5839] mb-2">Invite Coworker</h3>
           <input
             type="email"
