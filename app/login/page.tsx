@@ -1,6 +1,7 @@
 import LoginForm from "@/components/auth/login-form"
 import FloatingItems from "@/components/floating-items"
 import BackgroundMusic from "@/components/background-music"
+import LoginVoiceAfterMusic from "@/components/login-voice-after-music"
 import { Suspense } from "react"
 
 // Simple loading component
@@ -17,6 +18,7 @@ export default function LoginPage() {
     <main className="min-h-screen p-6 md:p-8 flex items-center justify-center relative">
       <FloatingItems />
       <BackgroundMusic />
+      <LoginVoiceAfterMusic />
       <div className="w-full max-w-md z-10">
         <h1 className="text-4xl font-pixel text-center mb-8 text-[#d75e38] pixel-text">Bizniz Quest</h1>
         <Suspense fallback={<Loading />}>

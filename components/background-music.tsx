@@ -12,8 +12,9 @@ export default function BackgroundMusic() {
   useEffect(() => {
     // Create audio element
     if (!audioRef.current) {
-      audioRef.current = new Audio("/sounds/elevator-music.mp3")
+      audioRef.current = new Audio("/sounds/doing-music.mp3")
       audioRef.current.loop = true
+      audioRef.current.id = "background-music-audio"
     }
 
     // Set initial volume based on device type
@@ -21,7 +22,7 @@ export default function BackgroundMusic() {
       audioRef.current.volume = 0
       audioRef.current.autoplay = false
     } else {
-      audioRef.current.volume = 0.3
+      audioRef.current.volume = 0.25
       audioRef.current.autoplay = true
 
       // Try to play (browsers may block autoplay)
@@ -50,7 +51,7 @@ export default function BackgroundMusic() {
     if (!audioRef.current) return
 
     if (isMuted) {
-      audioRef.current.volume = 0.3
+      audioRef.current.volume = 0.25
       audioRef.current.play().catch((error) => {
         console.error("Error playing audio:", error)
       })
