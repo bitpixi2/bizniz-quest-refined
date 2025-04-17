@@ -627,25 +627,27 @@ export default function CalendarSystem() {
                 ? "bg-[#ffe9b3] border-[#6b5839]"
                 : "bg-[#f0e6d2] border-[#d0c8b0] opacity-80"
             }`}
-            onClick={() => selectMonth(months[monthIndex])}
+            onClick={() => {
+  // Prevent switching to To Do 4 if not paid
+  if (!isPaid && getTodoNumber(monthIndex) === 4) {
+    setMessage('To Do 4 is a paid feature!');
+    return;
+  }
+  selectMonth(months[monthIndex]);
+}}
           >
             <CardHeader className={`${isMobile ? "p-2 pb-1" : "p-4 pb-2"}`}>
               <div className="flex justify-between items-center">
                 <input
-                  type="text"
-                  value={todoTitleInputs[monthIndex + 1] ?? getTodoTitle(monthIndex + 1)}
-                  onChange={(e) => handleTodoTitleChange(monthIndex + 1, e.target.value)}
-                  className="font-pixel text-lg text-[#6b5839] bg-transparent border-b border-[#6b5839] focus:outline-none w-40"
-                  disabled={savingTitle[monthIndex + 1] || loadingTitles}
-                />
-                <Button
-                  size="sm"
-                  className="ml-2"
-                  onClick={() => saveTodoTitle(monthIndex + 1)}
-                  disabled={savingTitle[monthIndex + 1] || loadingTitles}
-                >
-                  {savingTitle[monthIndex + 1] ? "Saving..." : "Save"}
-                </Button>
+  type="text"
+  value={todoTitleInputs[getTodoNumber(monthIndex)] ?? getTodoTitle(getTodoNumber(monthIndex))}
+  onChange={(e) => handleTodoTitleChange(getTodoNumber(monthIndex), e.target.value)}
+  className="font-pixel text-lg text-[#6b5839] bg-transparent border-b border-[#6b5839] focus:outline-none w-40"
+  disabled={savingTitle[getTodoNumber(monthIndex)] || loadingTitles}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") saveTodoTitle(getTodoNumber(monthIndex));
+  }}
+/>
               </div>
             </CardHeader>
             <CardContent className={`${isMobile ? "p-2 pt-1" : "p-4 pt-2"}`}>
@@ -663,8 +665,8 @@ export default function CalendarSystem() {
       <div className="bg-[#ffe9b3] p-5 rounded-lg border-4 border-[#6b5839] pixel-borders">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-pixel text-[#6b5839]">
-            {getTodoTitle(months.indexOf(selectedMonth)) + " Tasks"}
-          </h3>
+  {getTodoTitle(getTodoNumber(months.indexOf(selectedMonth))) + " Tasks"}
+</h3>
           <div className="flex gap-4">
             {selectedMonth.name === "Daily Tasks" && (
               <Button
@@ -762,29 +764,24 @@ export default function CalendarSystem() {
                       {todoNumber <= 3 ? (
                         <>
                           <input
-                            type="text"
-                            value={todoTitleInputs[todoNumber] ?? getTodoTitle(todoNumber)}
-                            onChange={(e) => handleTodoTitleChange(todoNumber, e.target.value)}
-                            className="font-pixel text-lg text-[#6b5839] bg-transparent border-b border-[#6b5839] focus:outline-none w-40"
-                            disabled={savingTitle[todoNumber] || loadingTitles}
-                          />
-                          <Button
-                            size="sm"
-                            className="ml-2"
-                            onClick={() => saveTodoTitle(todoNumber)}
-                            disabled={savingTitle[todoNumber] || loadingTitles}
-                          >
-                            {savingTitle[todoNumber] ? "Saving..." : "Save"}
-                          </Button>
+  type="text"
+  value={todoTitleInputs[todoNumber] ?? getTodoTitle(todoNumber)}
+  onChange={(e) => handleTodoTitleChange(todoNumber, e.target.value)}
+  className="font-pixel text-lg text-[#6b5839] bg-transparent border-b border-[#6b5839] focus:outline-none w-40"
+  disabled={savingTitle[todoNumber] || loadingTitles}
+  onKeyDown={(e) => {
+    if (e.key === "Enter") saveTodoTitle(todoNumber);
+  }}
+/>
                         </>
                       ) : (
                         <span className="font-pixel text-lg text-[#6b5839]">{getTodoTitle(todoNumber)}</span>
                       )}
                       {isLocked && (
-                        <span className="ml-2 text-[#c0392b] font-pixel flex items-center">
-                          <LockIcon className="w-4 h-4 mr-1" /> Unlock To Do 4
-                        </span>
-                      )}
+  <span className="ml-2 text-[#c0392b] font-pixel flex items-center pixel-lock">
+    <LockIcon className="w-4 h-4 mr-1" /> Locked (Paid)
+  </span>
+)}
                     </div>
                   </CardHeader>
                   <CardContent>
