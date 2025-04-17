@@ -414,23 +414,15 @@ export default function ScreenspySystem() {
       setError(tasksError.message)
       setSharedTasks([])
     } else {
-      // Group tasks by To Do number
-      const grouped: Record<number, SharedTask[]> = { 1: [], 2: [], 3: [], 4: [] };
-      if (Array.isArray(tasks)) {
-        tasks.forEach((task: any) => {
-          if (task.todo_number && grouped[task.todo_number]) {
-            grouped[task.todo_number].push({
-              id: task.id,
-              todo_number: task.todo_number,
-              task_name: task.task_name,
-              completed: task.completed,
-              urgent: task.urgent,
-              optional: task.optional,
-            });
-          }
-        });
-      }
-      setSharedTasks(grouped);
+      // Always store tasks as a flat array for type safety and UI consistency
+      setSharedTasks(Array.isArray(tasks) ? tasks.map((task: any) => ({
+        id: task.id,
+        todo_number: task.todo_number,
+        task_name: task.task_name,
+        completed: task.completed,
+        urgent: task.urgent,
+        optional: task.optional,
+      })) : []);
       setTodoTitles(todoTitles);
     }
   } catch (err) {
@@ -444,6 +436,61 @@ export default function ScreenspySystem() {
 
 // Add state for To Do titles for screenspy view
 const [todoTitles, setTodoTitles] = useState<Record<number, string>>({ 1: "To Do 1", 2: "To Do 2", 3: "To Do 3", 4: "To Do 4" });
+
+// Fix: Ensure getCoworkerTasks is async
+const getCoworkerTasks = async (friendData: any) => {
+  try {
+    // Check if the target coworker has enabled sharing
+    const sharingPref = await getScreenSharingPreference(friendData.id);
+    if (!sharingPref?.enabled) {
+      setError("This coworker is not sharing their tasks right now.");
+      setSharedTasks([]);
+      setIsLoadingTasks(false);
+      return;
+    }
+
+    // Fetch To Do titles
+    const { data: todoTitlesData, error: todoTitlesError } = await supabase
+      .from("todo_titles")
+      .select("todo_number, title")
+      .eq("profile_id", friendData.id);
+    let todoTitles: Record<number, string> = { 1: "To Do 1", 2: "To Do 2", 3: "To Do 3", 4: "To Do 4" };
+    if (!todoTitlesError && Array.isArray(todoTitlesData)) {
+      todoTitlesData.forEach((row: any) => {
+        todoTitles[row.todo_number] = row.title || `To Do ${row.todo_number}`;
+      });
+    }
+
+    // Fetch tasks for the friend, grouped by To Do 1-4
+    const { data: tasks, error: tasksError } = await supabase
+      .from("tasks")
+      .select("id, todo_number, task_name, completed, urgent, optional")
+      .eq("profile_id", friendData.id);
+
+    if (tasksError) {
+      setError(tasksError.message);
+      setSharedTasks([]);
+    } else {
+      // Always store tasks as a flat array for type safety and UI consistency
+      setSharedTasks(Array.isArray(tasks) ? tasks.map((task: any) => ({
+        id: task.id,
+        todo_number: task.todo_number,
+        task_name: task.task_name,
+        completed: task.completed,
+        urgent: task.urgent,
+        optional: task.optional,
+      })) : []);
+      setTodoTitles(todoTitles);
+    }
+  } catch (err) {
+    console.error("Error getting coworker tasks:", err);
+    setError("Failed to access coworker's screen");
+    setSharedTasks([]);
+  } finally {
+    setIsLoadingTasks(false);
+  }
+}
+
 
 // ... (rest of the code remains the same)
 
@@ -545,65 +592,72 @@ const [todoTitles, setTodoTitles] = useState<Record<number, string>>({ 1: "To Do
             </div>
           ) : (
             <div>
-              {Object.keys(sharedTasks).map((todoNumber) => (
-                <div key={todoNumber} className="mb-6">
-                  <h5 className="font-pixel text-sm text-[#00ff41] mb-3 bg-[#0f5d1a] p-2 rounded">
-                    {todoTitles[todoNumber]}
-                  </h5>
-                  <div className="space-y-4">
-                    {sharedTasks[todoNumber].map((task, index) => (
-                      <div
-                        key={`${task.id}-${index}`}
-                        className={`p-3 rounded-lg border-2 ${
-                          task.completed
-                            ? "bg-[#0f3d1a] border-[#00ff41]"
-                            : task.urgent
-                              ? "bg-[#3d1a0f] border-[#ff4100]"
-                              : "bg-[#0f5d1a] border-[#00aa41]"
-                        }`}
-                      >
-                        <div className="flex items-start">
-                          <div className="mr-2 mt-1">
-                            {task.completed ? (
-                              <CheckCircle2 className="h-4 w-4 text-[#00ff41]" />
-                            ) : task.urgent ? (
-                              <AlertTriangle className="h-4 w-4 text-[#ff4100]" />
-                            ) : (
-                              <div className="w-4 h-4 border-2 border-[#00ff41] rounded-sm"></div>
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-start">
-                              <p
-                                className={`font-pixel text-xs ${
-                                  task.completed
-                                    ? "text-[#00ff41] line-through"
-                                    : task.urgent
-                                      ? "text-[#ff4100]"
-                                      : "text-[#00ff41]"
-                                }`}
-                              >
-                                {task.task_name}
-                              </p>
-                              <div className="flex gap-2 ml-2">
-                                {task.urgent && !task.completed && (
-                                  <span className="inline-block px-2 py-0.5 bg-[#3d1a0f] text-[#ff4100] font-pixel text-[10px] rounded border border-[#ff4100]">
-                                    URGENT
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="mt-2">
-                              {task.optional && (
-                                <span className="inline-block px-2 py-0.5 bg-[#0f3d1a] text-[#00ff41] font-pixel text-[10px] rounded border border-[#00ff41]">
-                                  OPTIONAL
-                                </span>
-                              )}
-                            </div>
-              <RefreshCw className="h-3 w-3 ml-2 animate-spin text-[#6b5839]" />
-            )}
+              {[1, 2, 3, 4].map((todoNumber) => {
+  const tasksForTodo = sharedTasks.filter((task: SharedTask) => task.todo_number === todoNumber);
+  if (tasksForTodo.length === 0) return null;
+  return (
+    <div key={todoNumber} className="mb-6">
+      <h5 className="font-pixel text-sm text-[#00ff41] mb-3 bg-[#0f3d1a] p-2 rounded">
+        {todoTitles?.[todoNumber] ?? `To Do ${todoNumber}`}
+      </h5>
+      <div className="space-y-4">
+        {tasksForTodo.map((task: SharedTask, index: number) => (
+          <div
+            key={`${task.id}-${index}`}
+            className={`p-3 rounded-lg border-2 ${
+              task.completed
+                ? "bg-[#0f3d1a] border-[#00ff41]"
+                : task.urgent
+                  ? "bg-[#3d1a0f] border-[#ff4100]"
+                  : "bg-[#0f5d1a] border-[#00aa41]"
+            }`}
+          >
+            <div className="flex items-start">
+              <div className="mr-2 mt-1">
+                {task.completed ? (
+                  <CheckCircle2 className="h-4 w-4 text-[#00ff41]" />
+                ) : task.urgent ? (
+                  <AlertTriangle className="h-4 w-4 text-[#ff4100]" />
+                ) : (
+                  <div className="w-4 h-4 border-2 border-[#00ff41] rounded-sm"></div>
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <p
+                    className={`font-pixel text-xs ${
+                      task.completed
+                        ? "text-[#00ff41] line-through"
+                        : task.urgent
+                          ? "text-[#ff4100]"
+                          : "text-[#00ff41]"
+                    }`}
+                  >
+                    {task.task_name}
+                  </p>
+                  <div className="flex gap-2 ml-2">
+                    {task.urgent && !task.completed && (
+                      <span className="inline-block px-2 py-0.5 bg-[#3d1a0f] text-[#ff4100] font-pixel text-[10px] rounded border border-[#ff4100]">
+                        URGENT
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2">
+                  {task.optional && (
+                    <span className="inline-block px-2 py-0.5 bg-[#0f3d1a] text-[#00ff41] font-pixel text-[10px] rounded border border-[#00ff41]">
+                      OPTIONAL
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        ))}
+      </div>
+    </div>
+  );
+})}
         {sharingStatus && <p className="font-pixel text-xs text-[#6b5839] mt-2 text-left">{sharingStatus}</p>}
       </div>
 
