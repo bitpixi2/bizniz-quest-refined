@@ -1,4 +1,6 @@
-import Link from "next/link"
+git add components/screenspy-system.tsx
+git commit -m "fix: remove stray code causing syntax error in screenspy-system"
+git pushimport Link from "next/link"
 import CalendarSystem from "@/components/calendar-system"
 import { Button } from "@/components/ui/button"
 import ProtectedRoute from "@/components/auth/protected-route"
@@ -32,11 +34,13 @@ export default function Home() {
               </Button>
             </Link>
 
+            {/*
             <Link href="/screenspy">
               <Button className="bg-[#ffe9b3] text-[#6b5839] border-2 border-[#6b5839] hover:bg-[#f0e6d2] font-pixel pixel-borders">
                 Screenspy
               </Button>
             </Link>
+            */}
           </div>
 
           <CalendarSystem />

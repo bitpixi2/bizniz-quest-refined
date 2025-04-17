@@ -1,44 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAuth } from "@/lib/auth-context"
-import { addCoworker, getCoworkers, removeCoworker, updateScreenSharingPreference, getScreenSharingPreference, checkUserScreenSharingEnabled, inviteCoworkerByEmail } from "@/lib/screenspy-actions"
-import { getSupabaseBrowserClient } from "@/lib/supabase"
-import {
-  MessageSquare,
-  Users,
-  Send,
-  Coffee,
-  FileText,
-  Monitor,
-  Eye,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  Calendar,
-  RefreshCw,
-  UserPlus,
-  UserMinus,
-  Lock,
-  Mail,
-} from "lucide-react"
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
+import { getSupabaseBrowserClient } from "@/lib/supabase";
+import { Monitor } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile"
 
-interface Message {
-  id: number
-  sender: {
-    id: string
-    username: string
-  }
-  message: string
-  task_name?: string
-  created_at: string
-  read: boolean
-}
 
 interface Friend {
   id: string
@@ -55,61 +24,112 @@ interface SharedTask {
   optional?: boolean
 }
 
-// Work humor messages for encouragement suggestions
-const workHumorMessages = [
-  "Hang in there! Remember, the light at the end of the tunnel might be you with a flashlight looking for the exit.",
-  "You're not procrastinating, you're just giving your future self a bigger challenge!",
-  "I believe in you! Mostly because I'm not the one who has to do all that paperwork.",
-  "You've got this! And if not, at least the coffee machine still works.",
-  "Keep going! Your desk plant is rooting for you.",
-  "Success is just failure that hasn't happened yet... wait, that came out wrong.",
-  "You're doing amazing! The printer even jammed less when you walked by.",
-  "Sending positive vibes and imaginary donuts your way!",
-  "Remember: what doesn't kill you gives you something to put on your resume.",
-  "You're not stuck in a rut, you're establishing a very deep groove of expertise!",
-]
 
 export default function ScreenspySystem() {
   const { user } = useAuth()
-  const [messages, setMessages] = useState<Message[]>([])
-  const [friends, setFriends] = useState<Friend[]>([])
-  const [friendUsername, setFriendUsername] = useState("")
-  const [inviteEmail, setInviteEmail] = useState("")
-  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null)
-  const [messageText, setMessageText] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [randomHumorMessage, setRandomHumorMessage] = useState("")
-  const [screenshareMode, setScreenshareMode] = useState(false)
+  const [coworkers, setCoworkers] = useState<Friend[]>([])
+  const [selectedCoworker, setSelectedCoworker] = useState<Friend | null>(null)
   const [sharedTasks, setSharedTasks] = useState<SharedTask[]>([])
   const [isLoadingTasks, setIsLoadingTasks] = useState(false)
+  const [isLoadingCoworkers, setIsLoadingCoworkers] = useState(false)
   const [sharingEnabled, setSharingEnabled] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [sharingStatus, setSharingStatus] = useState<string | null>(null)
-  const [isCheckingSharing, setIsCheckingSharing] = useState(false)
-  const [username, setUsername] = useState<string>("")
-  const [isLoadingFriends, setIsLoadingFriends] = useState(false)
-  const [isAddingFriend, setIsAddingFriend] = useState(false)
-  const [isRemovingFriend, setIsRemovingFriend] = useState(false)
-  const [isUpdatingSharing, setIsUpdatingSharing] = useState(false)
-  const [isInviting, setIsInviting] = useState(false)
-  const [selectedCharacterId, setSelectedCharacterId] = useState<number>(1)
 
-  const isMobile = useIsMobile()
-
-  // Load messages
   useEffect(() => {
-    if (!user) return
+    if (!user) return;
+    // Fetch coworkers with screen_sharing_enabled
+    const fetchCoworkers = async () => {
+      setIsLoadingCoworkers(true);
+      setError(null);
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, username, screen_sharing_enabled')
+          .eq('screen_sharing_enabled', true)
+          .neq('id', user.id);
+        if (error) throw error;
+        setCoworkers(data || []);
+      } catch (err: any) {
+        setError('Failed to fetch coworkers.');
+      } finally {
+        setIsLoadingCoworkers(false);
+      }
+    };
+    fetchCoworkers();
+  }, [user]);
 
-    const loadMessages = async () => {
-      const supabase = getSupabaseBrowserClient()
+  useEffect(() => {
+    if (!user) return;
+    // Fetch own sharing preference
+    const fetchSharing = async () => {
+      try {
+        const supabase = getSupabaseBrowserClient();
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('screen_sharing_enabled')
+          .eq('id', user.id)
+          .single();
+        if (error) throw error;
+        setSharingEnabled(!!data?.screen_sharing_enabled);
+      } catch {
+        setSharingEnabled(false);
+      }
+    };
+    fetchSharing();
+  }, [user]);
 
+  const handleToggleSharing = async () => {
+    if (!user) return;
+    setSharingStatus(sharingEnabled ? 'Disabling sharing...' : 'Enabling sharing...');
+    try {
+      const supabase = getSupabaseBrowserClient();
+      const { error } = await supabase
+        .from('profiles')
+        .update({ screen_sharing_enabled: !sharingEnabled })
+        .eq('id', user.id);
+      if (error) throw error;
+      setSharingEnabled((prev) => !prev);
+      setSharingStatus(null);
+    } catch {
+      setSharingStatus('Failed to update sharing preference.');
+    }
+  };
+
+  const handleSelectCoworker = async (coworker: Friend) => {
+    setSelectedCoworker(coworker);
+    setIsLoadingTasks(true);
+    setError(null);
+    try {
+      const supabase = getSupabaseBrowserClient();
       const { data, error } = await supabase
-        .from("messages")
-        .select(`
-          id, message, read, created_at,
-          sender:sender_id(id, username),
-          tasks:task_id(name)
-        `)
+        .from('tasks')
+        .select('id, task_name, completed, urgent, optional, todo_number')
+        .eq('profile_id', coworker.id)
+        .order('id', { ascending: true });
+      if (error) throw error;
+      setSharedTasks(data || []);
+    } catch {
+      setError('Failed to fetch shared tasks.');
+      setSharedTasks([]);
+    } finally {
+      setIsLoadingTasks(false);
+    }
+  };
+
+  // --- CLEANED STATE: Only what's needed for screenspy and sharing toggle ---
+  const { user } = useAuth();
+  const [coworkers, setCoworkers] = useState<Friend[]>([]);
+  const [selectedCoworker, setSelectedCoworker] = useState<Friend | null>(null);
+  const [sharedTasks, setSharedTasks] = useState<SharedTask[]>([]);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(false);
+  const [isLoadingCoworkers, setIsLoadingCoworkers] = useState(false);
+  const [sharingEnabled, setSharingEnabled] = useState(false);
+  const [sharingStatus, setSharingStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // --- END CLEANED STATE ---
         .eq("receiver_id", user.id)
         .order("created_at", { ascending: false })
 
@@ -377,68 +397,13 @@ export default function ScreenspySystem() {
 
   // Get a random humor message for suggestion
   const getRandomHumorMessage = () => {
-    const randomIndex = Math.floor(Math.random() * workHumorMessages.length)
-      setSharedTasks([])
-      setIsLoadingTasks(false)
-      return
-    }
-
-    // Check if the target coworker has enabled sharing
-    const sharingPref = await getScreenSharingPreference(friendData.id);
-    if (!sharingPref?.enabled) {
-      setError("This coworker is not sharing their tasks right now.");
-      setSharedTasks([]);
-      setIsLoadingTasks(false);
-      return;
-    }
-
-    // Fetch To Do titles
-    const { data: todoTitlesData, error: todoTitlesError } = await supabase
-      .from("todo_titles")
-      .select("todo_number, title")
-      .eq("profile_id", friendData.id);
-    let todoTitles: Record<number, string> = { 1: "To Do 1", 2: "To Do 2", 3: "To Do 3", 4: "To Do 4" };
-    if (!todoTitlesError && Array.isArray(todoTitlesData)) {
-      todoTitlesData.forEach((row: any) => {
-        todoTitles[row.todo_number] = row.title || `To Do ${row.todo_number}`;
-      });
-    }
-
-    // Fetch tasks for the friend, grouped by To Do 1-4
-    const { data: tasks, error: tasksError } = await supabase
-      .from("tasks")
-      .select("id, todo_number, task_name, completed, urgent, optional")
-      .eq("profile_id", friendData.id);
-
-    if (tasksError) {
-      setError(tasksError.message)
-      setSharedTasks([])
-    } else {
-      // Always store tasks as a flat array for type safety and UI consistency
-      setSharedTasks(Array.isArray(tasks) ? tasks.map((task: any) => ({
-        id: task.id,
-        todo_number: task.todo_number,
-        task_name: task.task_name,
-        completed: task.completed,
-        urgent: task.urgent,
-        optional: task.optional,
-      })) : []);
-      setTodoTitles(todoTitles);
-    }
-  } catch (err) {
-    console.error("Error getting coworker tasks:", err)
-    setError("Failed to access coworker's screen")
-    setSharedTasks([])
-  } finally {
-    setIsLoadingTasks(false)
+    const randomIndex = Math.floor(Math.random() * workHumorMessages.length);
+    return workHumorMessages[randomIndex];
   }
-}
 
-// Add state for To Do titles for screenspy view
-const [todoTitles, setTodoTitles] = useState<Record<number, string>>({ 1: "To Do 1", 2: "To Do 2", 3: "To Do 3", 4: "To Do 4" });
-
-// Fix: Ensure getCoworkerTasks is async
-const getCoworkerTasks = async (friendData: any) => {
+// Fetch coworker tasks and To Do titles
+const getCoworkerTasks = async (friendData: Friend) => {
+  setIsLoadingTasks(true);
   try {
     // Check if the target coworker has enabled sharing
     const sharingPref = await getScreenSharingPreference(friendData.id);
@@ -449,6 +414,8 @@ const getCoworkerTasks = async (friendData: any) => {
       return;
     }
 
+    const supabase = getSupabaseBrowserClient();
+
     // Fetch To Do titles
     const { data: todoTitlesData, error: todoTitlesError } = await supabase
       .from("todo_titles")
@@ -461,7 +428,7 @@ const getCoworkerTasks = async (friendData: any) => {
       });
     }
 
-    // Fetch tasks for the friend, grouped by To Do 1-4
+    // Fetch tasks for the friend
     const { data: tasks, error: tasksError } = await supabase
       .from("tasks")
       .select("id, todo_number, task_name, completed, urgent, optional")
@@ -471,7 +438,6 @@ const getCoworkerTasks = async (friendData: any) => {
       setError(tasksError.message);
       setSharedTasks([]);
     } else {
-      // Always store tasks as a flat array for type safety and UI consistency
       setSharedTasks(Array.isArray(tasks) ? tasks.map((task: any) => ({
         id: task.id,
         todo_number: task.todo_number,
@@ -489,110 +455,18 @@ const getCoworkerTasks = async (friendData: any) => {
   } finally {
     setIsLoadingTasks(false);
   }
-}
+};
+
+// Add state for To Do titles for screenspy view
+const [todoTitles, setTodoTitles] = useState<Record<number, string>>({ 1: "To Do 1", 2: "To Do 2", 3: "To Do 3", 4: "To Do 4" });
 
 
-// ... (rest of the code remains the same)
-
-// Task Sharing Toggle
-<div className="bg-[#f0e6d2] border-2 border-[#6b5839] px-4 py-3 rounded-lg mb-4">
-  <div className="flex items-center justify-between">
-    <div className="flex items-start">
-      <Eye className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0 text-[#6b5839]" />
-      <div>
-        <p className="font-pixel text-sm text-[#6b5839]">Let coworkers spy on your to-do list?</p>
-        <p className="font-pixel text-xs text-[#6b5839] opacity-70 mt-1">
-          {sharingEnabled ? "Yes! I need some public accountability." : "No way, José! These tasks are private."}
-        </p>
-      </div>
-    </div>
-    <div className="flex items-center">
-      <button
-        onClick={() => toggleScreenSharing(!sharingEnabled)}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6b5839] focus:ring-offset-2 ${sharingEnabled ? "bg-[#7cb518]" : "bg-[#d0c8b0]"}`}
-        disabled={isCheckingSharing || isUpdatingSharing}
-      >
-        <span
-          className={`${
-            sharingEnabled ? "translate-x-6" : "translate-x-1"
-          } inline-block h-4 w-4 transform rounded-full bg-white transition-transform`}
-        />
-      </button>
-      {(isCheckingSharing || isUpdatingSharing) && (
-        <RefreshCw className="h-3 w-3 ml-2 animate-spin text-[#6b5839]" />
-      )}
-    </div>
-  </div>
-  {sharingStatus && <p className="font-pixel text-xs text-[#6b5839] mt-2 text-left">{sharingStatus}</p>}
-</div>
 
 // ... (rest of the code remains the same)
 
 // Screenshare Mode
-{screenshareMode && (
-  <div className="mb-6">
-    <div className="flex justify-between items-center mb-4">
-      <h3 className="text-xl font-pixel text-[#6b5839]">
-        <Monitor className="inline-block h-5 w-5 mr-2" />
-        Spying on {selectedFriend?.username}'s Computer
-      </h3>
-      <Button
-        onClick={() => setScreenshareMode(false)}
-        variant="outline"
-        size="sm"
-        className="font-pixel text-xs border-[#6b5839] text-[#6b5839]"
-      >
-        Stop Spying
-      </Button>
-    </div>
+// (Moved JSX block inside the ScreenspySystem component's return statement)
 
-    {/* Old computer monitor style container */}
-    <div className="bg-[#333333] p-4 rounded-lg border-8 border-[#222222] shadow-lg">
-      {/* Monitor screen with scanlines effect */}
-      <div
-        className="bg-[#0a2a12] rounded-md p-4 relative overflow-hidden"
-        style={{
-          boxShadow: "inset 0 0 10px rgba(0, 50, 0, 0.5)",
-        }}
-      >
-        {/* Scanlines overlay */}
-        <div
-          className="absolute inset-0 pointer-events-none z-10"
-          style={{
-            background: "linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%)",
-            backgroundSize: "100% 4px",
-          }}
-        ></div>
-
-        {/* Screen content with scrollable area */}
-        <div
-          className="relative z-0 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"
-          style={{
-            scrollbarWidth: "thin",
-            scrollbarColor: "#0f5d1a #0a2a12",
-          }}
-        >
-          {isLoadingTasks ? (
-            <div className="text-center py-8">
-              <p className="font-pixel text-sm text-[#00ff41]">LOADING DATA...</p>
-            </div>
-          ) : error ? (
-            <div className="text-center py-8">
-              <XCircle className="h-8 w-8 text-[#ff5555] mx-auto mb-2" />
-              <p className="font-pixel text-sm text-[#00ff41]">ERROR: {error}</p>
-              <p className="font-pixel text-xs text-[#00ff41] mt-2">
-                ACCESS DENIED. USER MAY NOT HAVE SHARING ENABLED.
-              </p>
-            </div>
-          ) : sharedTasks.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="h-8 w-8 text-[#00ff41] opacity-50 mx-auto mb-2" />
-              <p className="font-pixel text-sm text-[#00ff41]">NO TASKS FOUND</p>
-              <p className="font-pixel text-xs text-[#00ff41] mt-1">DIRECTORY EMPTY</p>
-            </div>
-          ) : (
-            <div>
-              {[1, 2, 3, 4].map((todoNumber) => {
   const tasksForTodo = sharedTasks.filter((task: SharedTask) => task.todo_number === todoNumber);
   if (tasksForTodo.length === 0) return null;
   return (
@@ -656,13 +530,7 @@ const getCoworkerTasks = async (friendData: any) => {
         ))}
       </div>
     </div>
-  );
-})}
-        {sharingStatus && <p className="font-pixel text-xs text-[#6b5839] mt-2 text-left">{sharingStatus}</p>}
-      </div>
 
-      {/* Screenshare Mode */}
-      {screenshareMode && (
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-pixel text-[#6b5839]">
@@ -808,7 +676,275 @@ const getCoworkerTasks = async (friendData: any) => {
         </div>
       )}
 
-      <Tabs defaultValue="friends" className="w-full">
+      {/* Screenshare Mode Block */}
+      {screenshareMode && (
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-pixel text-[#6b5839]">
+              <Monitor className="inline-block h-5 w-5 mr-2" />
+              Spying on {selectedFriend?.username}'s Computer
+            </h3>
+            <Button
+              onClick={() => setScreenshareMode(false)}
+              variant="outline"
+              size="sm"
+              className="font-pixel text-xs border-[#6b5839] text-[#6b5839]"
+            >
+              Stop Spying
+            </Button>
+          </div>
+          {/* Old computer monitor style container */}
+          <div className="bg-[#333333] p-4 rounded-lg border-8 border-[#222222] shadow-lg">
+            {/* Monitor screen with scanlines effect */}
+            <div
+              className="bg-[#0a2a12] rounded-md p-4 relative overflow-hidden"
+              style={{ boxShadow: "inset 0 0 10px rgba(0, 50, 0, 0.5)" }}
+            >
+              {/* Scanlines overlay */}
+              <div
+                className="absolute inset-0 pointer-events-none z-10"
+                style={{
+                  background: "linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%)",
+                  backgroundSize: "100% 4px",
+                }}
+              ></div>
+              {/* Screen content with scrollable area */}
+              <div
+                className="relative z-0 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"
+                style={{ scrollbarWidth: "thin", scrollbarColor: "#0f5d1a #0a2a12" }}
+              >
+                {isLoadingTasks ? (
+                  <div className="text-center py-8">
+                    <p className="font-pixel text-sm text-[#00ff41]">LOADING DATA...</p>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <XCircle className="h-8 w-8 text-[#ff5555] mx-auto mb-2" />
+                    <p className="font-pixel text-sm text-[#00ff41]">ERROR: {error}</p>
+                  </div>
+                ) : sharedTasks.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="font-pixel text-sm text-[#00ff41]">No shared tasks found for this coworker.</p>
+                  </div>
+                ) : (
+                  <div>
+                    {sharedTasks.map((task, idx) => (
+                      <div key={task.id || idx} className={`p-3 rounded-lg border-2 mt-2 ${task.completed ? "bg-[#0f3d1a] border-[#00ff41]" : task.urgent ? "bg-[#3d1a0f] border-[#ff4100]" : "bg-[#0f5d1a] border-[#00aa41]"}`}>
+                        <div className="flex items-start">
+                          <div className="mr-2 mt-1">
+                            {task.completed ? (
+                              <CheckCircle2 className="h-4 w-4 text-[#00ff41]" />
+                            ) : task.urgent ? (
+                              <AlertTriangle className="h-4 w-4 text-[#ff4100]" />
+                            ) : (
+                              <div className="w-4 h-4 border-2 border-[#00ff41] rounded-sm"></div>
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start">
+                              <p className={`font-pixel text-xs ${task.completed ? "text-[#00ff41] line-through" : task.urgent ? "text-[#ff4100]" : "text-[#00ff41]"}`}>{task.task_name}</p>
+                              <div className="flex gap-2 ml-2">
+                                {task.urgent && !task.completed && (
+                                  <span className="inline-block px-2 py-0.5 bg-[#3d1a0f] text-[#ff4100] font-pixel text-[10px] rounded border border-[#ff4100]">URGENT</span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="mt-2">
+                              {task.optional && (
+                                <span className="inline-block px-2 py-0.5 bg-[#0f3d1a] text-[#00ff41] font-pixel text-[10px] rounded border border-[#00ff41]">OPTIONAL</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* Monitor base/stand */}
+            <div className="h-4 bg-[#222222] mx-auto mt-2 w-1/3 rounded-b-lg"></div>
+          </div>
+        </div>
+      )}
+
+      {/* --- Screen Sharing Toggle at Top --- */}
+      <div className="flex flex-col items-center mb-8">
+        <Button
+          onClick={handleToggleSharing}
+          disabled={!!sharingStatus}
+          className={`font-pixel text-lg px-6 py-3 rounded border-2 ${sharingEnabled ? 'bg-[#7cb518] text-white border-[#6b5839]' : 'bg-[#d0c8b0] text-[#6b5839] border-[#6b5839]'} mb-2`}
+        >
+          {sharingEnabled ? 'Disable Screen Sharing' : 'Enable Screen Sharing'}
+        </Button>
+        {sharingStatus && (
+          <div className="mt-2 text-[#6b5839] font-pixel text-sm">{sharingStatus}</div>
+        )}
+      </div>
+
+      {/* --- Screenspy Computer Monitor (when selected) --- */}
+      {selectedCoworker && (
+        <div className="flex justify-center mb-8">
+          {/* Old computer monitor style container */}
+          <div className="bg-[#333333] p-4 rounded-lg border-8 border-[#222222] shadow-lg w-full max-w-3xl">
+            <div
+              className="bg-[#0a2a12] rounded-md p-4 relative overflow-hidden"
+              style={{ boxShadow: 'inset 0 0 10px rgba(0, 50, 0, 0.5)' }}
+            >
+              <div
+                className="absolute inset-0 pointer-events-none z-10"
+                style={{
+                  background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%)',
+                  backgroundSize: '100% 4px',
+                }}
+              ></div>
+              <div
+                className="relative z-0 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"
+                style={{ scrollbarWidth: 'thin', scrollbarColor: '#0f5d1a #0a2a12' }}
+              >
+                {isLoadingTasks ? (
+                  <div className="text-center py-8">
+                    <p className="font-pixel text-sm text-[#00ff41]">LOADING DATA...</p>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-8">
+                    <p className="font-pixel text-sm text-[#00ff41]">ERROR: {error}</p>
+                    <p className="font-pixel text-xs text-[#00ff41] mt-2">
+                      ACCESS DENIED. USER MAY NOT HAVE SHARING ENABLED.
+                    </p>
+                  </div>
+                ) : sharedTasks.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="font-pixel text-sm text-[#00ff41]">NO TASKS FOUND</p>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center mb-4">
+                      <Monitor className="h-5 w-5 text-[#00ff41] mr-2" />
+                      <h4 className="font-pixel text-lg text-[#00ff41]">{selectedCoworker.username}'s TASKS</h4>
+                    </div>
+                    {/* List tasks grouped by To Do number */}
+                    {[1, 2, 3, 4].map((todoNumber) => {
+                      const tasksForTodo = sharedTasks.filter((task) => task.todo_number === todoNumber);
+                      if (tasksForTodo.length === 0) return null;
+                      return (
+                        <div key={todoNumber} className="mb-6">
+                          <h5 className="font-pixel text-sm text-[#00ff41] mb-3 bg-[#0f3d1a] p-2 rounded">
+                            {todoTitles?.[todoNumber] ?? `To Do ${todoNumber}`}
+                          </h5>
+                          <div className="space-y-4">
+                            {tasksForTodo.map((task, index) => (
+                              <div
+                                key={`${task.id}-${index}`}
+                                className={`p-3 rounded-lg border-2 ${
+                                  task.completed
+                                    ? 'bg-[#0f3d1a] border-[#00ff41]'
+                                    : task.urgent
+                                      ? 'bg-[#3d1a0f] border-[#ff4100]'
+                                      : 'bg-[#0f5d1a] border-[#00aa41]'
+                                }`}
+                              >
+                                <div className="flex items-start">
+                                  <div className="mr-2 mt-1">
+                                    {task.completed ? (
+                                      <span className="h-4 w-4 text-[#00ff41]">✔</span>
+                                    ) : task.urgent ? (
+                                      <span className="h-4 w-4 text-[#ff4100]">!</span>
+                                    ) : (
+                                      <div className="w-4 h-4 border-2 border-[#00ff41] rounded-sm"></div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-start">
+                                      <p
+                                        className={`font-pixel text-xs ${
+                                          task.completed
+                                            ? 'text-[#00ff41] line-through'
+                                            : task.urgent
+                                              ? 'text-[#ff4100]'
+                                              : 'text-[#00ff41]'
+                                        }`}
+                                      >
+                                        {task.task_name}
+                                      </p>
+                                      <div className="flex gap-2 ml-2">
+                                        {task.urgent && !task.completed && (
+                                          <span className="inline-block px-2 py-0.5 bg-[#3d1a0f] text-[#ff4100] font-pixel text-[10px] rounded border border-[#ff4100]">
+                                            URGENT
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="mt-2">
+                                      {task.optional && (
+                                        <span className="inline-block px-2 py-0.5 bg-[#0f3d1a] text-[#00ff41] font-pixel text-[10px] rounded border border-[#00ff41]">
+                                          OPTIONAL
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="h-4 bg-[#222222] mx-auto mt-2 w-1/3 rounded-b-lg"></div>
+          </div>
+        </div>
+      )}
+
+      {/* --- Coworkers Row --- */}
+      <div className="flex flex-row flex-wrap gap-6 justify-center mb-10">
+        {coworkers.length === 0 && !isLoadingCoworkers ? (
+          <div className="font-pixel text-[#6b5839] text-center">No coworkers yet</div>
+        ) : isLoadingCoworkers ? (
+          <div className="font-pixel text-[#6b5839] text-center">Loading coworkers...</div>
+        ) : (
+          coworkers.map((coworker) => (
+            <div key={coworker.id} className="flex flex-col items-center bg-[#ffe9b3] border-4 border-[#6b5839] pixel-borders rounded-lg p-4 min-w-[180px] max-w-xs shadow-md">
+              <span className="font-pixel text-lg text-[#6b5839] mb-2">{coworker.username}</span>
+              <Button
+                onClick={() => handleSelectCoworker(coworker)}
+                className="bg-[#7cb518] text-white border-2 border-[#6b5839] hover:bg-[#6b9c16] font-pixel text-xs mt-2"
+              >
+                Screenspy
+              </Button>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* --- Invite Coworker Box --- */}
+      <div className="flex justify-center">
+        <div className="bg-[#ffe9b3] border-4 border-[#6b5839] pixel-borders rounded-lg p-6 max-w-md w-full flex flex-col items-center">
+          <span className="font-pixel text-xl text-[#6b5839] mb-2">Invite Coworker</span>
+          <input
+            type="email"
+            value={inviteEmail || ''}
+            onChange={e => setInviteEmail(e.target.value)}
+            placeholder="Enter coworker's email"
+            className="w-full p-3 rounded bg-[#f0e6d2] border-2 border-[#6b5839] font-pixel text-sm text-[#6b5839] mb-3"
+          />
+          <Button
+            onClick={inviteCoworker}
+            disabled={!inviteEmail?.trim() || isInviting}
+            className="bg-[#7cb518] text-white border-2 border-[#6b5839] hover:bg-[#6b9c16] font-pixel text-sm px-6"
+          >
+            {isInviting ? 'Inviting...' : 'Send Invite'}
+          </Button>
+          {error && <div className="mt-2 text-red-600 font-pixel text-xs">{error}</div>}
+          {success && <div className="mt-2 text-green-700 font-pixel text-xs">{success}</div>}
+        </div>
+      </div>
+
+      {/* End of Custom Layout */}
+
         <TabsList className="grid w-full grid-cols-2 bg-[#d0c8b0] rounded-lg border-2 border-[#6b5839] pixel-borders mb-6">
           <TabsTrigger
             value="friends"

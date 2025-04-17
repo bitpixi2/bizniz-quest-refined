@@ -5,7 +5,7 @@ import type React from "react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { supabase } from "@/lib/supabase-client"
+import { getSupabaseBrowserClient } from "@/lib/supabase"
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -20,7 +20,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         // Only check token expiration if we have a user
         // But do it less frequently - only if token is about to expire in 1 minute
         try {
-          const { data } = await supabase.auth.getSession()
+          const { data } = await getSupabaseBrowserClient().auth.getSession()
           if (data.session?.expires_at) {
             const expiresAt = new Date(data.session.expires_at * 1000)
             const now = new Date()
@@ -29,7 +29,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
             // Only refresh if token expires in less than 1 minute (instead of 5 minutes)
             if (timeUntilExpiry < 60 * 1000) {
               console.log("Session about to expire, refreshing...")
-              const { data: refreshData, error } = await supabase.auth.refreshSession()
+              const { data: refreshData, error } = await getSupabaseBrowserClient().auth.refreshSession()
               if (error) {
                 console.error("Error refreshing session:", error)
                 // If refresh fails, redirect to login
@@ -47,7 +47,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     checkAuth()
 
     // We're not setting up any interval or repeated checks here
-  }, [user, isLoading, router, supabase.auth])
+  }, [user, isLoading, router, getSupabaseBrowserClient().auth])
 
   if (isLoading) {
     return (
