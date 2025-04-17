@@ -621,31 +621,37 @@ export default function CalendarSystem() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {months.map((month, monthIndex) => (
           <Card
-            key={`${month.name}-${month.year}`}
+            key={monthIndex}
             className={`cursor-pointer transition-all pixel-borders month-card-mobile ${
-              selectedMonth.name === month.name
+              selectedMonth === months[monthIndex]
                 ? "bg-[#ffe9b3] border-[#6b5839]"
                 : "bg-[#f0e6d2] border-[#d0c8b0] opacity-80"
             }`}
-            onClick={() => selectMonth(month)}
+            onClick={() => selectMonth(months[monthIndex])}
           >
             <CardHeader className={`${isMobile ? "p-2 pb-1" : "p-4 pb-2"}`}>
               <div className="flex justify-between items-center">
-                <CardTitle className={`${isMobile ? "text-sm" : "text-lg"} font-pixel text-[#6b5839]`}>
-                  {month.name === "Daily Tasks"
-                    ? isMobile
-                      ? "Daily"
-                      : month.name
-                    : isMobile
-                      ? month.name.substring(0, 3)
-                      : `${month.name} ${month.year}`}
-                </CardTitle>
+                <input
+                  type="text"
+                  value={todoTitleInputs[monthIndex + 1] ?? getTodoTitle(monthIndex + 1)}
+                  onChange={(e) => handleTodoTitleChange(monthIndex + 1, e.target.value)}
+                  className="font-pixel text-lg text-[#6b5839] bg-transparent border-b border-[#6b5839] focus:outline-none w-40"
+                  disabled={savingTitle[monthIndex + 1] || loadingTitles}
+                />
+                <Button
+                  size="sm"
+                  className="ml-2"
+                  onClick={() => saveTodoTitle(monthIndex + 1)}
+                  disabled={savingTitle[monthIndex + 1] || loadingTitles}
+                >
+                  {savingTitle[monthIndex + 1] ? "Saving..." : "Save"}
+                </Button>
               </div>
             </CardHeader>
             <CardContent className={`${isMobile ? "p-2 pt-1" : "p-4 pt-2"}`}>
               <div className="h-6">
                 <CardDescription className={`font-pixel ${isMobile ? "text-[10px]" : "text-xs"} text-[#6b5839]`}>
-                  {`${month.tasks.filter((t) => t.completed).length}/${month.tasks.length} tasks`}
+                  {`${months[monthIndex].tasks.filter((t) => t.completed).length}/${months[monthIndex].tasks.length} tasks`}
                 </CardDescription>
               </div>
             </CardContent>
@@ -657,7 +663,7 @@ export default function CalendarSystem() {
       <div className="bg-[#ffe9b3] p-5 rounded-lg border-4 border-[#6b5839] pixel-borders">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-pixel text-[#6b5839]">
-            {selectedMonth.name === "Daily Tasks" ? "Daily Tasks" : `${selectedMonth.name} ${selectedMonth.year} Tasks`}
+            {getTodoTitle(months.indexOf(selectedMonth)) + " Tasks"}
           </h3>
           <div className="flex gap-4">
             {selectedMonth.name === "Daily Tasks" && (
