@@ -4,11 +4,11 @@ import "./globals.css"
 import "@/components/pixel-styles.css"
 import { AuthProvider } from "@/lib/auth-context"
 import GlobalLoading from "@/components/global-loading"
+import { Analytics } from "@vercel/analytics/react";
 
 export const metadata: Metadata = {
   title: "Bizniz Quest",
-  description: "A cozy business simulation game",
-  generator: "v0.dev",
+  description: "A cozy business simulator to get things done"
 }
 
 export default function RootLayout({
