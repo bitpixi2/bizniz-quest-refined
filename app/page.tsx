@@ -1,6 +1,4 @@
-git add components/screenspy-system.tsx
-git commit -m "fix: remove stray code causing syntax error in screenspy-system"
-git pushimport Link from "next/link"
+import Link from "next/link"
 import CalendarSystem from "@/components/calendar-system"
 import { Button } from "@/components/ui/button"
 import ProtectedRoute from "@/components/auth/protected-route"

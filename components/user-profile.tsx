@@ -53,7 +53,9 @@ export default function UserProfile() {
             .select("character_number")
             .eq("user_id", user.id)
             .single();
-          setSelectedCharacterId(charSel?.character_number ?? 1); // default to 1
+          setSelectedCharacterId(
+  typeof charSel?.character_number === "number" ? charSel.character_number : 1
+); // default to 1
         } catch (err) {
           console.error("Error in profile fetch:", err);
           const emailPrefix = user.email?.split("@")[0] || "user";

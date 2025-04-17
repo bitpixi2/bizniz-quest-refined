@@ -22,6 +22,6 @@ export async function setTodoTitle(userId: string, todoNumber: number, title: st
   // Upsert the title for this user/todoNumber
   const { error } = await supabase
     .from("todo_titles")
-    .upsert({ user_id: userId, todo_number: todoNumber, title }, { onConflict: ["user_id", "todo_number"] });
+    .upsert({ user_id: userId, todo_number: todoNumber, title }, { onConflict: "user_id,todo_number" });
   return { error };
 }
