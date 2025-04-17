@@ -61,11 +61,13 @@ export default function ScreenspySystem() {
           .neq("id", user.id); // Show all users except self, regardless of sharing status
         if (error) throw error;
         const friends = Array.isArray(data)
-          ? data.map((c) => ({
-              id: String(c.id),
-              username: String(c.username),
-              screen_sharing_enabled: Boolean(c.screen_sharing_enabled),
-            }))
+          ? data
+              .filter((c) => c.username !== "testuser" && c.username !== "frienduser")
+              .map((c) => ({
+                id: String(c.id),
+                username: String(c.username),
+                screen_sharing_enabled: Boolean(c.screen_sharing_enabled),
+              }))
           : [];
         setCoworkers(friends);
       } catch {
@@ -106,7 +108,7 @@ export default function ScreenspySystem() {
       toggleOffRef.current.currentTime = 0;
       toggleOffRef.current.play();
     }
-    setSharingStatus(sharingEnabled ? "Disabling sharing..." : "Enabling sharing...");
+    setSharingStatus(null);
     try {
       const supabase = getSupabaseBrowserClient();
       const { error } = await supabase
@@ -207,22 +209,25 @@ export default function ScreenspySystem() {
             ? "When enabled, your To Do tasks are visible to anyone logged in."
             : "Your To Do tasks are private and not visible to others."}
         </div>
-        {sharingStatus && <div className="mt-2 text-[#6b5839] font-pixel text-sm">{sharingStatus}</div>}
+
       </div>
 
       {/* Selected Coworker Monitor */}
       {selectedCoworker && (
         <div className="flex justify-center mb-8">
           <div className="bg-white border-4 border-[#6b5839] pixel-borders rounded-lg p-6 w-full max-w-3xl">
-            <div className="bg-[#f0e6d2] rounded-md p-4 relative overflow-hidden pixel-borders">
+            {/* Monitor Outer Shell */}
+            <div className="bg-[#f0e6d2] rounded-t-lg rounded-b-none p-4 pt-6 pb-8 relative overflow-hidden pixel-borders shadow-lg border-b-8 border-[#bca87c] flex flex-col items-center" style={{ boxShadow: '0 6px 16px #0002' }}>
+              {/* Screen reflection lines */}
               <div
                 className="absolute inset-0 pointer-events-none z-10"
                 style={{
-                  background: "linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%)",
+                  background: "linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.18) 50%)",
                   backgroundSize: "100% 4px",
                 }}
               ></div>
-              <div className="relative z-0 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {/* Monitor screen content */}
+              <div className="relative z-0 max-h-[320px] overflow-y-auto pr-2 custom-scrollbar w-full bg-[#e4e4e4] border-4 border-[#a0956e] rounded-md flex flex-col items-center" style={{ minHeight: 160, minWidth: 220 }}>
                 {isLoadingTasks ? (
                   <p className="font-pixel text-sm text-[#00ff41] text-center py-8">Loading tasks...</p>
                 ) : error ? (
@@ -233,7 +238,7 @@ export default function ScreenspySystem() {
                   sharedTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="p-3 mb-2 rounded-lg border-2 pixel-borders bg-white border-[#6b5839]"
+                      className="p-3 mb-2 rounded-lg border-2 pixel-borders bg-white border-[#6b5839] w-full"
                     >
                       <div className="flex justify-between items-center">
                         <span className={`font-pixel text-xs ${task.completed ? "line-through" : ""}`}>{task.task_name}</span>
@@ -244,7 +249,18 @@ export default function ScreenspySystem() {
                   ))
                 )}
               </div>
-              <div className="h-4 bg-[#222222] mx-auto mt-2 w-1/3 rounded-b-lg"></div>
+              {/* Thick bottom bezel */}
+              <div className="w-full h-6 bg-[#d6c38a] border-t-4 border-[#bca87c] flex items-center justify-center relative">
+                {/* Power button */}
+                <div className="w-4 h-4 rounded-full bg-[#888] border-2 border-[#444] absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-[#6bff41]" />
+                </div>
+              </div>
+            </div>
+            {/* Monitor Stand - below monitor */}
+            <div className="flex flex-col items-center -mt-2">
+              <div className="h-4 bg-[#222222] w-16 rounded-b-lg mb-1"></div>
+              <div className="h-2 w-8 bg-[#bca87c] rounded-b-lg"></div>
             </div>
           </div>
         </div>
