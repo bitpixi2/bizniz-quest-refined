@@ -6,37 +6,50 @@ export default function LoginVoiceAfterMusic() {
   const musicRef = useRef<HTMLAudioElement | null>(null)
   const voiceRef = useRef<HTMLAudioElement | null>(null)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const originalMusicVolume = useRef<number>(0.25)
 
-  // Listen for music start
   useEffect(() => {
     const music = document.getElementById("background-music-audio") as HTMLAudioElement | null
     if (!music) return
     musicRef.current = music
+    originalMusicVolume.current = music.volume
+
+    const playVoice = () => {
+      if (voiceRef.current && musicRef.current) {
+        // Lower music volume
+        musicRef.current.volume = 0.08
+        voiceRef.current.volume = 0.69
+        voiceRef.current.play()
+      }
+    }
+
+    // Restore music volume after voice ends
+    const restoreMusic = () => {
+      if (musicRef.current) {
+        musicRef.current.volume = originalMusicVolume.current
+      }
+    }
+
     // If already playing, start timer immediately
     if (!played && !music.paused) {
-      timerRef.current = setTimeout(() => {
-        if (voiceRef.current) {
-          voiceRef.current.volume = 0.69
-          voiceRef.current.play()
-        }
-      }, 9000)
+      timerRef.current = setTimeout(playVoice, 9000)
       setPlayed(true)
     }
+
     // Otherwise, listen for play
     const onPlay = () => {
       if (!played) {
-        timerRef.current = setTimeout(() => {
-          if (voiceRef.current) {
-            voiceRef.current.volume = 0.69
-            voiceRef.current.play()
-          }
-        }, 9000)
+        timerRef.current = setTimeout(playVoice, 9000)
         setPlayed(true)
       }
     }
     music.addEventListener("play", onPlay)
+    // Listen for voice end
+    voiceRef.current?.addEventListener("ended", restoreMusic)
+
     return () => {
       music.removeEventListener("play", onPlay)
+      voiceRef.current?.removeEventListener("ended", restoreMusic)
       if (timerRef.current) clearTimeout(timerRef.current)
     }
   }, [played])
