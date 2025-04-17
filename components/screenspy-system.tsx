@@ -190,14 +190,14 @@ export default function ScreenspySystem() {
           <button
             onClick={handleToggleSharing}
             disabled={!!sharingStatus}
-            className={`w-16 h-10 border-2 border-[#6b5839] pixel-borders bg-transparent flex items-center relative focus:outline-none transition-colors duration-200 ${
+            className={`w-16 h-8 border-2 border-[#6b5839] pixel-borders bg-transparent flex items-center relative focus:outline-none transition-colors duration-200 ${
               sharingEnabled ? 'bg-[#7cb518]' : 'bg-[#d0c8b0]'
             }`}
             aria-pressed={sharingEnabled}
             style={{ borderRadius: 0, padding: 0 }}
           >
             <span
-              className={`absolute left-1 w-8 h-8 border-2 border-[#6b5839] pixel-borders transition-transform duration-200 ${
+              className={`absolute left-1 w-5 h-5 border-2 border-[#6b5839] pixel-borders transition-transform duration-200 ${
                 sharingEnabled ? 'translate-x-8 bg-[#7cb518]' : 'bg-[#e74c3c]'
               }`}
               style={{ borderRadius: 0, top: '50%', transform: `translateY(-50%) ${sharingEnabled ? 'translateX(32px)' : ''}` }}
@@ -218,6 +218,8 @@ export default function ScreenspySystem() {
           <div className="bg-white border-4 border-[#6b5839] pixel-borders rounded-lg p-6 w-full max-w-3xl">
             {/* Monitor Outer Shell */}
             <div className="bg-[#f0e6d2] rounded-t-lg rounded-b-none p-4 pt-6 pb-8 relative overflow-hidden pixel-borders shadow-lg border-b-8 border-[#bca87c] flex flex-col items-center" style={{ boxShadow: '0 6px 16px #0002' }}>
+  {/* Black background behind monitor */}
+  <div className="absolute inset-0 w-full h-full bg-black rounded-lg z-0" />
               {/* Screen reflection lines */}
               <div
                 className="absolute inset-0 pointer-events-none z-10"

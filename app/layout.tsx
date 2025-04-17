@@ -41,6 +41,10 @@ export default function RootLayout({
           <GlobalLoading />
           {children}
         </AuthProvider>
+        {/* Vercel Analytics */}
+        {process.env.NODE_ENV === "production" && (
+          <Analytics />
+        )}
       </body>
     </html>
   )
