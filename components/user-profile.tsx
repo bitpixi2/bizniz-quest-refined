@@ -18,66 +18,52 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (user) {
-      // Fetch the user's profile to get the username and selected character
       const fetchProfile = async () => {
         try {
-          const supabase = getSupabaseBrowserClient()
+          const supabase = getSupabaseBrowserClient();
 
           // Get profile data
           const { data: profileData, error: profileError } = await supabase
             .from("profiles")
             .select("username, created_at")
             .eq("id", user.id)
-            .single()
+            .single();
 
           if (profileError) {
-            console.error("Error fetching profile:", profileError)
-            // Fallback to email prefix if profile fetch fails
-            const emailPrefix = user.email?.split("@")[0] || "user"
-            setUsername(emailPrefix)
+            console.error("Error fetching profile:", profileError);
+            const emailPrefix = user.email?.split("@")[0] || "user";
+            setUsername(emailPrefix);
           } else if (profileData && typeof profileData.username === "string") {
-            setUsername(profileData.username)
-
-            // Format join date
+            setUsername(profileData.username);
             if (typeof profileData.created_at === "string") {
-              const date = new Date(profileData.created_at)
+              const date = new Date(profileData.created_at);
               setJoinDate(
                 date.toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
-                }),
-              )
+                })
+              );
             }
           }
 
-          // Get life balance data to find selected character
-          const { data: lifeBalanceData, error: lifeBalanceError } = await supabase
-            .from("life_balance")
-            .select("selected_character_id")
-            .eq("profile_id", user.id)
-            .maybeSingle()
-
-          if (
-            !lifeBalanceError &&
-            lifeBalanceData &&
-            typeof lifeBalanceData.selected_character_id === "number"
-          ) {
-            setSelectedCharacterId(lifeBalanceData.selected_character_id)
-          }
+          // Get character selection from the new table
+          const { data: charSel, error: charSelError } = await supabase
+            .from("character_selection")
+            .select("character_number")
+            .eq("user_id", user.id)
+            .single();
+          setSelectedCharacterId(charSel?.character_number ?? 1); // default to 1
         } catch (err) {
-          console.error("Error in profile fetch:", err)
-          const emailPrefix = user.email?.split("@")[0] || "user"
-          setUsername(emailPrefix)
+          console.error("Error in profile fetch:", err);
+          const emailPrefix = user.email?.split("@")[0] || "user";
+          setUsername(emailPrefix);
         }
-      }
-
-      fetchProfile()
-
-      // Set email from user object
-      setEmail(user.email || null)
+      };
+      fetchProfile();
+      setEmail(user.email || null);
     }
-  }, [user])
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
@@ -119,7 +105,9 @@ export default function UserProfile() {
             <img
               src={getCharacterSprite(selectedCharacterId) || "/placeholder.svg"}
               alt="Character Avatar"
-              className="w-full h-full pixelated object-contain"
+              className="w-full h-full pixelated object-contain cursor-pointer"
+              onClick={() => router.push("/character")}
+              title="Change your character"
             />
           </div>
           <div className="flex-1 space-y-2 text-center sm:text-left">

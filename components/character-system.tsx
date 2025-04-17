@@ -21,7 +21,7 @@ import {
   Apple,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import { saveCharacterData, loadUserData } from "@/lib/actions"
+import { getSupabaseBrowserClient } from "@/lib/supabase"
 import { Textarea } from "@/components/ui/textarea"
 
 interface LifeBalanceCategory {
@@ -197,7 +197,26 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
     },
   ])
 
-  const [selectedCharacter, setSelectedCharacter] = useState<Character>(characters[0])
+  const [selectedCharacter, setSelectedCharacter] = useState<Character>(characters[0]);
+
+  // Fetch selected character from Supabase on mount
+  useEffect(() => {
+    async function fetchCharacterSelection() {
+      if (!user) return;
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("character_selection")
+        .select("character_number")
+        .eq("user_id", user.id)
+        .single();
+      if (data?.character_number) {
+        const char = characters.find((c) => c.id === data.character_number);
+        if (char) setSelectedCharacter(char);
+      }
+    }
+    fetchCharacterSelection();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
   const [showUnlockModal, setShowUnlockModal] = useState<number | null>(null)
   const [purchaseSuccess, setPurchaseSuccess] = useState(false)
 
@@ -622,7 +641,16 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
                   <div className="flex justify-between items-center mb-3">
                     <h3 className="text-lg font-pixel text-[#6b5839]">LIFE BALANCE NOTES</h3>
                     <Button
-                      onClick={saveDataToDatabase}
+                      onClick={async () => {
+                        if (!user) return;
+                        setIsSaving(true);
+                        const supabase = getSupabaseBrowserClient();
+                        await supabase
+                          .from("character_selection")
+                          .upsert({ user_id: user.id, character_number: selectedCharacter.id });
+                        setIsSaving(false);
+                        window.location.href = "/profile";
+                      }}
                       disabled={isSaving}
                       className="bg-[#7cb518] text-white border-2 border-[#6b5839] hover:bg-[#6b9c16] font-pixel pixel-borders"
                       size="sm"
