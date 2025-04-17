@@ -126,7 +126,6 @@ export default function ScreenspySystem() {
         : [];
       setSharedTasks(tasks);
     } catch {
-      setError("Failed to fetch shared tasks.");
       setSharedTasks([]);
     } finally {
       setIsLoadingTasks(false);
@@ -159,7 +158,7 @@ export default function ScreenspySystem() {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-6 bg-white border-4 border-[#6b5839] pixel-borders max-w-5xl mx-auto">
       {/* Sharing Toggle */}
       <div className="flex flex-col items-center mb-8">
         <Button
@@ -177,8 +176,8 @@ export default function ScreenspySystem() {
       {/* Selected Coworker Monitor */}
       {selectedCoworker && (
         <div className="flex justify-center mb-8">
-          <div className="bg-[#333333] p-4 rounded-lg border-8 border-[#222222] shadow-lg w-full max-w-3xl">
-            <div className="bg-[#0a2a12] rounded-md p-4 relative overflow-hidden" style={{ boxShadow: "inset 0 0 10px rgba(0, 50, 0, 0.5)" }}>
+          <div className="bg-white border-4 border-[#6b5839] pixel-borders rounded-lg p-6 w-full max-w-3xl">
+            <div className="bg-[#f0e6d2] rounded-md p-4 relative overflow-hidden pixel-borders">
               <div
                 className="absolute inset-0 pointer-events-none z-10"
                 style={{
@@ -197,13 +196,7 @@ export default function ScreenspySystem() {
                   sharedTasks.map((task) => (
                     <div
                       key={task.id}
-                      className={`p-3 mb-2 rounded-lg border-2 ${
-                        task.completed
-                          ? "bg-[#0f3d1a] border-[#00ff41]"
-                          : task.urgent
-                          ? "bg-[#3d1a0f] border-[#ff4100]"
-                          : "bg-[#0f5d1a] border-[#00aa41]"
-                      }`}
+                      className="p-3 mb-2 rounded-lg border-2 pixel-borders bg-white border-[#6b5839]"
                     >
                       <div className="flex justify-between items-center">
                         <span className={`font-pixel text-xs ${task.completed ? "line-through" : ""}`}>{task.task_name}</span>
@@ -228,12 +221,12 @@ export default function ScreenspySystem() {
           coworkers.map((coworker) => (
             <div
               key={coworker.id}
-              className="flex flex-col items-center bg-[#ffe9b3] border-4 border-[#6b5839] rounded-lg p-4 min-w-[180px] shadow-md"
+              className="flex flex-col items-center bg-white border-4 border-[#6b5839] pixel-borders rounded-lg p-4 min-w-[180px] shadow-md"
             >
               <span className="font-pixel text-lg text-[#6b5839] mb-2">{coworker.username}</span>
               <Button
                 onClick={() => handleSelectCoworker(coworker)}
-                className="bg-[#7cb518] text-white border-2 border-[#6b5839] font-pixel text-xs"
+                className="bg-[#7cb518] text-white border-2 border-[#6b5839] font-pixel text-xs pixel-borders"
               >
                 Screenspy
               </Button>
@@ -246,19 +239,19 @@ export default function ScreenspySystem() {
 
       {/* Invite Coworker */}
       <div className="flex justify-center">
-        <div className="bg-[#ffe9b3] border-4 border-[#6b5839] rounded-lg p-6 max-w-md w-full text-center">
+        <div className="bg-white border-4 border-[#6b5839] pixel-borders rounded-lg p-6 max-w-md w-full text-center">
           <h3 className="font-pixel text-xl text-[#6b5839] mb-2">Invite Coworker</h3>
           <input
             type="email"
             value={inviteEmail}
             onChange={(e) => setInviteEmail(e.target.value)}
             placeholder="Enter coworker's email"
-            className="w-full p-3 mb-3 rounded bg-[#f0e6d2] border-2 border-[#6b5839] font-pixel text-sm text-[#6b5839]"
+            className="w-full p-3 mb-3 rounded bg-[#f0e6d2] border-2 border-[#6b5839] font-pixel text-sm text-[#6b5839] pixel-borders"
           />
           <Button
             onClick={inviteCoworker}
             disabled={!inviteEmail.trim() || isInviting}
-            className="bg-[#7cb518] text-white border-2 border-[#6b5839] font-pixel text-sm px-6"
+            className="bg-[#7cb518] text-white border-2 border-[#6b5839] font-pixel text-sm px-6 pixel-borders"
           >
             {isInviting ? "Inviting..." : "Send Invite"}
           </Button>
