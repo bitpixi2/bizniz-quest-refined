@@ -32,13 +32,11 @@ export default function Home() {
               </Button>
             </Link>
 
-            {/*
             <Link href="/screenspy">
               <Button className="bg-[#ffe9b3] text-[#6b5839] border-2 border-[#6b5839] hover:bg-[#f0e6d2] font-pixel pixel-borders">
                 Screenspy
               </Button>
             </Link>
-            */}
           </div>
 
           <CalendarSystem />
