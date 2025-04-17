@@ -17,7 +17,7 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen p-6 md:p-8 flex items-center justify-center relative">
       <FloatingItems />
-      <BackgroundMusic />
+      <BackgroundMusic src="/sounds/elevator_music.mp3" volume={0.5} />
       <LoginVoiceAfterMusic />
       <div className="w-full max-w-md z-10">
         <h1 className="text-4xl font-pixel text-center mb-8 text-[#d75e38] pixel-text">Bizniz Quest</h1>

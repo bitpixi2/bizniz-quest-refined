@@ -11,6 +11,7 @@ export default function CharacterPage() {
 
   return (
     <ProtectedRoute>
+      <BackgroundMusic src="/sounds/doing_music.mp3" volume={0.3} />
       <main className="min-h-screen p-6 md:p-8">
         <div className="max-w-5xl mx-auto">
           <div className="flex justify-between items-center mb-8">

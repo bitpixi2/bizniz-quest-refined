@@ -4,7 +4,12 @@ import { useState, useEffect, useRef } from "react"
 import { useIsMobile } from "@/hooks/use-mobile" // Fixed import name
 import { Volume2, VolumeX } from "lucide-react"
 
-export default function BackgroundMusic() {
+interface BackgroundMusicProps {
+  src: string;
+  volume: number;
+}
+
+export default function BackgroundMusic({ src, volume }: BackgroundMusicProps) {
   const isMobile = useIsMobile() // Using the correct hook name
   const [isMuted, setIsMuted] = useState(isMobile)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -12,7 +17,7 @@ export default function BackgroundMusic() {
   useEffect(() => {
     // Create audio element
     if (!audioRef.current) {
-      audioRef.current = new Audio("/sounds/doing-music.mp3")
+      audioRef.current = new Audio(src)
       audioRef.current.loop = true
       audioRef.current.id = "background-music-audio"
     }
@@ -22,7 +27,7 @@ export default function BackgroundMusic() {
       audioRef.current.volume = 0
       audioRef.current.autoplay = false
     } else {
-      audioRef.current.volume = 0.25
+      audioRef.current.volume = volume
       audioRef.current.autoplay = true
 
       // Try to play (browsers may block autoplay)
@@ -51,7 +56,7 @@ export default function BackgroundMusic() {
     if (!audioRef.current) return
 
     if (isMuted) {
-      audioRef.current.volume = 0.25
+      audioRef.current.volume = volume
       audioRef.current.play().catch((error) => {
         console.error("Error playing audio:", error)
       })
