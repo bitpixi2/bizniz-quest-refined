@@ -41,6 +41,13 @@ export default function ScreenspySystem() {
   const toggleOnRef = useRef<HTMLAudioElement | null>(null);
   const toggleOffRef = useRef<HTMLAudioElement | null>(null);
 
+  // Set toggleOff volume to 0.4
+  useEffect(() => {
+    if (toggleOffRef.current) {
+      toggleOffRef.current.volume = 0.4;
+    }
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     const fetchCoworkers = async () => {
@@ -181,17 +188,17 @@ export default function ScreenspySystem() {
           <button
             onClick={handleToggleSharing}
             disabled={!!sharingStatus}
-            className={`w-16 h-8 border-2 border-[#6b5839] pixel-borders bg-transparent flex items-center relative focus:outline-none transition-colors duration-200 ${
+            className={`w-16 h-10 border-2 border-[#6b5839] pixel-borders bg-transparent flex items-center relative focus:outline-none transition-colors duration-200 ${
               sharingEnabled ? 'bg-[#7cb518]' : 'bg-[#d0c8b0]'
             }`}
             aria-pressed={sharingEnabled}
             style={{ borderRadius: 0, padding: 0 }}
           >
             <span
-              className={`absolute top-1 left-1 w-6 h-6 bg-white border-2 border-[#6b5839] pixel-borders transition-transform duration-200 ${
-                sharingEnabled ? 'translate-x-8' : ''
+              className={`absolute left-1 w-8 h-8 border-2 border-[#6b5839] pixel-borders transition-transform duration-200 ${
+                sharingEnabled ? 'translate-x-8 bg-[#7cb518]' : 'bg-[#e74c3c]'
               }`}
-              style={{ borderRadius: 0 }}
+              style={{ borderRadius: 0, top: '50%', transform: `translateY(-50%) ${sharingEnabled ? 'translateX(32px)' : ''}` }}
             />
           </button>
         </div>
