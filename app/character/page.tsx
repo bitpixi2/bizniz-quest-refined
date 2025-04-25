@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import CharacterSystem from "@/components/character-system"
+import BackgroundMusic from "@/components/background-music"
 import BackArrow from "@/components/back-arrow"
 import ProtectedRoute from "@/components/auth/protected-route"
 import { Card, CardContent } from "@/components/ui/card"

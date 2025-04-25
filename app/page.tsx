@@ -1,8 +1,9 @@
 import Link from "next/link"
-import CalendarSystem from "@/components/calendar-system"
+import CalendarSystemClean from "@/components/calendar-system-clean"
 import { Button } from "@/components/ui/button"
 import ProtectedRoute from "@/components/auth/protected-route"
 import UserProfile from "@/components/user-profile"
+import BackgroundMusic from "@/components/background-music"
 
 export default function Home() {
   return (
@@ -40,7 +41,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <CalendarSystem />
+          <CalendarSystemClean />
         </div>
       </main>
     </ProtectedRoute>

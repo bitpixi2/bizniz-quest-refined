@@ -1,6 +1,7 @@
 import BackArrow from "@/components/back-arrow"
 import ProtectedRoute from "@/components/auth/protected-route"
 import ScreenspySystem from "@/components/screenspy-system"
+import BackgroundMusic from "@/components/background-music"
 
 export default function ScreenspyPage() {
   return (

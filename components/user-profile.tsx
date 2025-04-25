@@ -13,6 +13,7 @@ export default function UserProfile() {
   const [username, setUsername] = useState<string | null>(null)
   const [email, setEmail] = useState<string | null>(null)
   const [selectedCharacterId, setSelectedCharacterId] = useState<number>(1)
+  const [characterImage, setCharacterImage] = useState<string>("")
   const [joinDate, setJoinDate] = useState<string | null>(null)
   const router = useRouter()
 
@@ -47,15 +48,16 @@ export default function UserProfile() {
             }
           }
 
-          // Get character selection from the new table
-          const { data: charSel, error: charSelError } = await supabase
-            .from("character_selection")
-            .select("character_number")
-            .eq("user_id", user.id)
-            .single();
-          setSelectedCharacterId(
-  typeof charSel?.character_number === "number" ? charSel.character_number : 1
-); // default to 1
+          // Get character selection from the life_balance table
+          const { data: lifeBalance, error: lifeBalanceError } = await supabase
+            .from("life_balance")
+            .select("selected_character_id")
+            .eq("profile_id", user.id)
+            .maybeSingle();
+          console.log("Fetched life balance:", lifeBalance, lifeBalanceError);
+          const charId = typeof lifeBalance?.selected_character_id === "number" ? lifeBalance.selected_character_id : 1;
+          setSelectedCharacterId(charId);
+          setCharacterImage(`/images/pixel-char${charId}.png`);
         } catch (err) {
           console.error("Error in profile fetch:", err);
           const emailPrefix = user.email?.split("@")[0] || "user";
@@ -78,10 +80,7 @@ export default function UserProfile() {
 
   if (!user) return null
 
-  // Get character sprite based on selected character ID
-  const getCharacterSprite = (id: number) => {
-    return `/images/pixel-char${id || 1}.png`
-  }
+  
 
   return (
     <Card className="bg-[#ffe9b3] border-4 border-[#6b5839] pixel-borders overflow-hidden">
@@ -105,7 +104,7 @@ export default function UserProfile() {
         <div className="flex flex-col sm:flex-row items-center gap-4">
           <div className="w-20 h-20 rounded-lg bg-[#f0e6d2] border-4 border-[#6b5839] pixel-borders flex items-center justify-center overflow-hidden">
             <img
-              src={getCharacterSprite(selectedCharacterId) || "/placeholder.svg"}
+              src={characterImage}
               alt="Character Avatar"
               className="w-full h-full pixelated object-contain cursor-pointer"
               onClick={() => router.push("/character")}

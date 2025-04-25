@@ -199,24 +199,6 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
 
   const [selectedCharacter, setSelectedCharacter] = useState<Character>(characters[0]);
 
-  // Fetch selected character from Supabase on mount
-  useEffect(() => {
-    async function fetchCharacterSelection() {
-      if (!user) return;
-      const supabase = getSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from("character_selection")
-        .select("character_number")
-        .eq("user_id", user.id)
-        .single();
-      if (data?.character_number) {
-        const char = characters.find((c) => c.id === data.character_number);
-        if (char) setSelectedCharacter(char);
-      }
-    }
-    fetchCharacterSelection();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
   const [showUnlockModal, setShowUnlockModal] = useState<number | null>(null)
   const [purchaseSuccess, setPurchaseSuccess] = useState(false)
 
@@ -345,36 +327,26 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
     if (!user) return
 
     try {
-      const data = await loadUserData(user.id)
-
-      if (data.error) {
-        console.error(`Error loading data: ${data.error}`)
-
-        // Check if it's an auth error
-        if (data.isAuthError) {
-          setSyncMessage("Your session has expired. Please refresh the page.")
-          if (onError) onError("Authentication expired. Please refresh the page or log in again.")
-          return
-        }
-
-        setSyncMessage(`Error: ${data.error}. Using local data.`)
-        if (onError) onError(`Failed to load character data: ${data.error}`)
-        setTimeout(() => setSyncMessage(null), 3000)
-        return
+      const supabase = getSupabaseBrowserClient();
+      const { data, error } = await supabase
+        .from("life_balance")
+        .select("categories, notes, selected_character_id")
+        .eq("profile_id", user.id)
+        .single();
+      if (error) {
+        setSyncMessage(`Error loading data: ${error.message}`);
+        if (onError) onError(`Failed to load life balance data: ${error.message}`);
+        setTimeout(() => setSyncMessage(null), 3000);
+        return;
       }
-
-      // Update life balance categories if available
-      if (data.lifeBalanceCategories && data.lifeBalanceCategories.length > 0) {
-        // Make sure we preserve the Snack Time category if it's not in the loaded data
-        const formattedCategories = data.lifeBalanceCategories.map((category: any) => ({
+      // Update life balance categories
+      if (data?.categories && Array.isArray(data.categories)) {
+        const formattedCategories = data.categories.map((category: any) => ({
           ...category,
           icon: getIconForCategory(category.id),
-        }))
-
-        // Check if Snack Time is in the loaded categories
-        const hasSnackTime = formattedCategories.some((cat: any) => cat.id === "snack-time")
-
-        // If not, add it to the formatted categories
+        }));
+        // Ensure 'snack-time' is present
+        const hasSnackTime = formattedCategories.some((cat: any) => cat.id === "snack-time");
         if (!hasSnackTime) {
           formattedCategories.push({
             id: "snack-time",
@@ -382,73 +354,66 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
             level: 0,
             maxLevel: 5,
             description: "The sacred ritual of staring into the fridge every 20 minutes hoping food materializes",
-            icon: <Apple className="h-5 w-5 text-green-500" />, // Changed from Pizza to Apple
-          })
+            icon: <Apple className="h-5 w-5 text-green-500" />,
+          });
         }
-
-        setLifeBalanceCategories(formattedCategories)
+        setLifeBalanceCategories(formattedCategories);
       }
-
-      // Update life balance notes if available
-      if (data.lifeBalanceNotes) {
-        setLifeBalanceNotes(data.lifeBalanceNotes)
+      // Update notes
+      if (data?.notes) {
+        setLifeBalanceNotes(typeof data.notes === "string" ? data.notes : data.notes ? JSON.stringify(data.notes) : "");
       }
-
-      // Update selected character if available
-      if (data.selectedCharacterId) {
-        const character = characters.find((c) => c.id === data.selectedCharacterId)
+      // Update selected character
+      if (data?.selected_character_id) {
+        const character = characters.find((c) => c.id === data.selected_character_id);
         if (character) {
-          setSelectedCharacter(character)
+          setSelectedCharacter(character);
         }
       }
-
-      setSyncMessage("Data loaded successfully!")
-      setTimeout(() => setSyncMessage(null), 2000)
+      setSyncMessage("Data loaded successfully!");
+      setTimeout(() => setSyncMessage(null), 2000);
     } catch (error) {
-      console.error("Error loading data:", error)
-      setSyncMessage("Error loading data. Using local data.")
-      setTimeout(() => setSyncMessage(null), 3000)
+      console.error("Error loading data:", error);
+      setSyncMessage("Error loading data. Using local data.");
+      setTimeout(() => setSyncMessage(null), 3000);
     }
   }
 
   // Function to save data to the database
   const saveDataToDatabase = async () => {
-    if (!user) return
-
-    setIsSaving(true)
-    setSyncMessage("Saving...")
-
+    if (!user) return;
+    setIsSaving(true);
+    setSyncMessage("Saving...");
     try {
-      // Format life balance categories for saving (without React elements)
+      const supabase = getSupabaseBrowserClient();
       const categoriesData = lifeBalanceCategories.map((category) => ({
         id: category.id,
         name: category.name,
         level: category.level,
         maxLevel: category.maxLevel,
         description: category.description,
-      }))
-
-      const result = await saveCharacterData(user.id, {
-        lifeBalanceCategories: categoriesData,
-        lifeBalanceNotes,
-        selectedCharacterId: selectedCharacter.id,
-      })
-
-      if (result.error) {
-        console.error(`Error saving data: ${result.error}`)
-        setSyncMessage(`Error: ${result.error}`)
-        setTimeout(() => setSyncMessage(null), 3000)
-        return
+      }));
+      const { error } = await supabase
+        .from("life_balance")
+        .update({
+          categories: categoriesData,
+          notes: lifeBalanceNotes,
+          selected_character_id: selectedCharacter.id,
+        })
+        .eq("profile_id", user.id);
+      if (error) {
+        setSyncMessage(`Error: ${error.message}`);
+        setTimeout(() => setSyncMessage(null), 3000);
+        return;
       }
-
-      setSyncMessage("Saved successfully!")
-      setTimeout(() => setSyncMessage(null), 2000)
+      setSyncMessage("Saved successfully!");
+      setTimeout(() => setSyncMessage(null), 2000);
     } catch (error) {
-      console.error("Error saving data:", error)
-      setSyncMessage("Error saving data.")
-      setTimeout(() => setSyncMessage(null), 3000)
+      console.error("Error saving data:", error);
+      setSyncMessage("Error saving data.");
+      setTimeout(() => setSyncMessage(null), 3000);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
   }
 
@@ -646,8 +611,9 @@ export default function CharacterSystem({ onError }: CharacterSystemProps = {}) 
                         setIsSaving(true);
                         const supabase = getSupabaseBrowserClient();
                         await supabase
-                          .from("character_selection")
-                          .upsert({ user_id: user.id, character_number: selectedCharacter.id });
+  .from("life_balance")
+  .update({ selected_character_id: selectedCharacter.id })
+  .eq("profile_id", user.id);
                         setIsSaving(false);
                         window.location.href = "/profile";
                       }}

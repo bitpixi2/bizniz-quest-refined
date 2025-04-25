@@ -23,7 +23,7 @@ interface TodoList {
   newTaskName?: string; // For temporary input only, not persisted
 }
 
-export default function CalendarSystem() {
+function CalendarSystemClean() {
   const { user } = useAuth()
   const supabase = useSupabaseClient()
   const [todoLists, setTodoLists] = useState<TodoList[]>([]);
@@ -84,6 +84,7 @@ export default function CalendarSystem() {
           } catch (e) { /* ignore parse errors */ }
         }
       }
+
       const { data, error } = await supabase
         .from("todo_lists")
         .select("lists")
@@ -94,6 +95,7 @@ export default function CalendarSystem() {
         setIsLoading(false);
         return;
       }
+
       if (data && data.lists) {
         setTodoLists(data.lists);
       } else {
@@ -106,6 +108,7 @@ export default function CalendarSystem() {
         ];
         setTodoLists(defaultLists);
       }
+
       setSyncMessage(null);
     } catch (error) {
       setSyncMessage("Error loading tasks from database.");
@@ -184,6 +187,7 @@ export default function CalendarSystem() {
         : list
     ));
   };
+
   // UI Rendering
   return (
     <div className="p-6 bg-[#f8f3e3] rounded-lg max-w-5xl mx-auto border-4 border-[#6b5839] pixel-borders">
@@ -193,7 +197,9 @@ export default function CalendarSystem() {
           {message}
         </div>
       )}
+
       {/* Responsive To Do grid for all devices */}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {todoLists.map((list: TodoList, todoListIndex: number) => (
           <Card key={todoListIndex} className="cursor-pointer transition-all pixel-borders month-card-mobile bg-[#f0e6d2] border-[#d0c8b0] opacity-80">
@@ -261,45 +267,60 @@ export default function CalendarSystem() {
                       <PlusCircle className="w-4 h-4 mr-1" /> Add
                     </Button>
                   </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
-        <div className="grid gap-3 mb-6">
-          {todoLists[3]?.tasks.map((task: TodoList["tasks"][number], taskIndex: number) => (
-            <div
-              key={task.id}
-              data-task-id={task.id}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-3 mb-6">
+        {todoLists[3]?.tasks.map((task: TodoList["tasks"][number], taskIndex: number) => (
+          <div
+            key={task.id}
+
+            data-task-id={task.id}
+
+            className={`flex items-center p-3 sm:p-3 rounded ${
+              task.completed ? "bg-[#d4e09b]" : "bg-[#f0e6d2]"
+            } border-2 border-[#6b5839] pixel-borders task-mobile task-item`}
               className={`flex items-center p-3 sm:p-3 rounded ${
                 task.completed ? "bg-[#d4e09b]" : "bg-[#f0e6d2]"
               } border-2 border-[#6b5839] pixel-borders task-mobile task-item`}
+
               onClick={() => toggleTaskCompletion(4, task.id)}
+
               role="checkbox"
               aria-checked={task.completed}
+
               tabIndex={0}
+
               draggable={!isMobile}
+
             >
               {!isMobile && (
                 <div className="task-action mr-2 cursor-move">
                   <GripVertical className={`${isMobile ? "h-4 w-4" : "h-5 w-5"} text-[#6b5839] opacity-50 mobile-icon`} />
                 </div>
               )}
+
               <div
                 className={`${isMobile ? "w-4 h-4" : "w-5 h-5"} mr-3 border-2 border-[#6b5839] ${
                   task.completed ? "bg-[#7cb518]" : "bg-white"
                 } flex items-center justify-center cursor-pointer pixel-borders mobile-checkbox`}
+
               >
                 {task.completed && <span className="text-white font-bold text-xs">✓</span>}
+
               </div>
               <span
                 className={`font-pixel text-sm flex-1 task-text ${
                   task.completed ? "line-through text-[#6b5839]" : "text-[#6b5839]"
                 }`}
+
               >
                 {task.name}
+
               </span>
               <button
                 className="task-action ml-2 text-[#6b5839] hover:text-red-500 transition-colors"
@@ -307,6 +328,7 @@ export default function CalendarSystem() {
                   e.stopPropagation();
                   deleteTask(4, task.id);
                 }}
+
                 aria-label="Delete task"
               >
                 <div className="pixel-x"></div>
@@ -318,3 +340,5 @@ export default function CalendarSystem() {
     </div>
   );
 }
+
+export default CalendarSystemClean;

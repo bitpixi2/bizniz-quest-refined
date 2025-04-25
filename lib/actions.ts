@@ -1,22 +1,10 @@
 "use server"
 
 import { createServerClient } from "./supabase"
-// Remove the revalidatePath import since it's causing issues with pages/ directory
 
 // Types
-type MonthData = {
-  name: string
-  year: number
-  unlocked: boolean
-  completed: boolean
-  tasks: {
-    id: string
-    name: string
-    completed: boolean
-    optional?: boolean
-    position: number
-  }[]
-}
+
+
 
 type LocationData = {
   id: string
@@ -44,35 +32,29 @@ type Skill = {
   category: string
 }
 
-// Modify the saveMonths function to be more reliable on mobile
-// Around line 200-250
+// Save todo lists data to database (canonical To Do system)
+export async function saveTodoLists(userId: string, todoLists: any[]) {
+  const supabase = createServerClient();
 
-// Save months data to database
-export async function saveMonths(userId: string, months: MonthData[]) {
-  const supabase = createServerClient()
-
-  // First, check if a profile exists for this user
+  // Ensure user profile exists (keep this logic)
   const { data: existingProfile, error: profileError } = await supabase
     .from("profiles")
     .select("id")
     .eq("id", userId)
-    .maybeSingle()
+    .maybeSingle();
 
   if (profileError) {
-    console.error("Error checking profile:", profileError)
-    return { error: profileError.message }
+    console.error("Error checking profile:", profileError);
+    return { error: profileError.message };
   }
 
-  // If no profile exists, create one
   if (!existingProfile) {
     // Get user details from auth
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId)
-
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
     if (userError) {
-      console.error("Error fetching user:", userError)
-      return { error: "User not found: " + userError.message }
+      console.error("Error fetching user:", userError);
+      return { error: "User not found: " + userError.message };
     }
-
     // Create a profile for the user
     const { error: insertProfileError } = await supabase.from("profiles").insert({
       id: userId,
@@ -80,160 +62,24 @@ export async function saveMonths(userId: string, months: MonthData[]) {
       display_name: userData.user.email?.split("@")[0] || "User",
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    })
-
+    });
     if (insertProfileError) {
-      console.error("Error creating profile:", insertProfileError)
-      return { error: "Failed to create profile: " + insertProfileError.message }
+      console.error("Error creating profile:", insertProfileError);
+      return { error: "Failed to create profile: " + insertProfileError.message };
     }
   }
 
-  // Now proceed with saving months as before
-  // First, get all existing months for this user
-  const { data: existingMonths, error: fetchError } = await supabase
-    .from("months")
-    .select("id, name, year")
-    .eq("profile_id", userId)
+  // Save or update todo lists in todo_lists table
+  const { error: upsertError } = await supabase
+    .from("todo_lists")
+    .upsert({ user_id: userId, lists: todoLists }, { onConflict: "user_id" });
 
-  if (fetchError) {
-    console.error("Error fetching months:", fetchError)
-    return { error: fetchError.message }
+  if (upsertError) {
+    console.error("Error saving todo lists:", upsertError);
+    return { error: upsertError.message };
   }
 
-  // Add retry logic for mobile
-  const processMonth = async (month, retries = 3) => {
-    try {
-      // Check if month exists
-      const existingMonth = existingMonths?.find((m) => m.name === month.name && m.year === month.year)
-
-      if (existingMonth) {
-        // Update existing month
-        const { error: updateError } = await supabase
-          .from("months")
-          .update({
-            unlocked: month.unlocked,
-            completed: month.completed,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existingMonth.id)
-
-        if (updateError) {
-          throw updateError
-        }
-
-        // Handle tasks for this month
-        await handleTasks(supabase, existingMonth.id, month.tasks)
-      } else {
-        // Insert new month
-        const { data: newMonth, error: insertError } = await supabase
-          .from("months")
-          .insert({
-            profile_id: userId,
-            name: month.name,
-            year: month.year,
-            unlocked: month.unlocked,
-            completed: month.completed,
-          })
-          .select("id")
-          .single()
-
-        if (insertError) {
-          throw insertError
-        }
-
-        // Handle tasks for this month
-        if (newMonth) {
-          await handleTasks(supabase, newMonth.id, month.tasks)
-        }
-      }
-
-      return { success: true }
-    } catch (error) {
-      if (retries > 0) {
-        // Wait a bit before retrying
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        return processMonth(month, retries - 1)
-      }
-      console.error("Error processing month after retries:", error)
-      return { error: error.message }
-    }
-  }
-
-  // Process each month with retry logic
-  for (const month of months) {
-    const result = await processMonth(month)
-    if (result.error) {
-      return { error: `Error processing month ${month.name}: ${result.error}` }
-    }
-  }
-
-  return { success: true }
-}
-
-// Helper function to handle tasks
-async function handleTasks(supabase: any, monthId: number, tasks: any[]) {
-  // First, get all existing tasks for this month
-  const { data: existingTasks, error: fetchError } = await supabase
-    .from("tasks")
-    .select("id, name")
-    .eq("month_id", monthId)
-
-  if (fetchError) {
-    console.error("Error fetching tasks:", fetchError)
-    return { error: fetchError.message }
-  }
-
-  // Process each task
-  for (let i = 0; i < tasks.length; i++) {
-    const task = tasks[i]
-    // Check if task exists
-    const existingTask = existingTasks?.find((t) => t.name === task.name)
-
-    if (existingTask) {
-      // Update existing task
-      const { error: updateError } = await supabase
-        .from("tasks")
-        .update({
-          completed: task.completed,
-          optional: task.optional || false,
-          urgent: task.urgent || false,
-          position: i,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", existingTask.id)
-
-      if (updateError) {
-        console.error("Error updating task:", updateError)
-      }
-    } else {
-      // Insert new task
-      const { error: insertError } = await supabase.from("tasks").insert({
-        month_id: monthId,
-        name: task.name,
-        completed: task.completed,
-        optional: task.optional || false,
-        urgent: task.urgent || false,
-        position: i,
-      })
-
-      if (insertError) {
-        console.error("Error inserting task:", insertError)
-      }
-    }
-  }
-
-  // Delete tasks that no longer exist
-  const taskNames = tasks.map((t) => t.name)
-  const tasksToDelete = existingTasks?.filter((t) => !taskNames.includes(t.name))
-
-  if (tasksToDelete && tasksToDelete.length > 0) {
-    const taskIds = tasksToDelete.map((t) => t.id)
-    const { error: deleteError } = await supabase.from("tasks").delete().in("id", taskIds)
-
-    if (deleteError) {
-      console.error("Error deleting tasks:", deleteError)
-    }
-  }
+  return { success: true };
 }
 
 // Save locations data to database
@@ -307,7 +153,6 @@ export async function saveLocations(userId: string, locations: LocationData[]) {
     }
   }
 
-  // Remove revalidatePath call
   return { success: true }
 }
 
@@ -328,7 +173,7 @@ async function handleLocationTasks(supabase: any, locationId: number, tasks: str
   for (let i = 0; i < tasks.length; i++) {
     const taskName = tasks[i]
     // Check if task exists
-    const existingTask = existingTasks?.find((t) => t.name === taskName)
+    const existingTask = existingTasks?.find((t: any) => t.name === taskName)
 
     if (existingTask) {
       // Update existing task position
@@ -358,7 +203,7 @@ async function handleLocationTasks(supabase: any, locationId: number, tasks: str
   }
 
   // Delete tasks that no longer exist
-  const tasksToDelete = existingTasks?.filter((t) => !tasks.includes(t.name))
+  const tasksToDelete = existingTasks?.filter((t: any) => !tasks.includes(t.name))
 
   if (tasksToDelete && tasksToDelete.length > 0) {
     const taskIds = tasksToDelete.map((t) => t.id)
@@ -370,67 +215,17 @@ async function handleLocationTasks(supabase: any, locationId: number, tasks: str
   }
 }
 
-// Send encouragement message
-export async function sendEncouragement(senderId: string, receiverId: string, taskName: string, message: string) {
-  const supabase = createServerClient()
-
-  try {
-    // For demo purposes, store messages in a different table if using sample IDs
-    if (receiverId.length < 10) {
-      // Simple check for sample IDs like "1", "2", etc.
-      // Store in a demo_messages table or handle differently
-      console.log("Demo message:", { senderId, receiverId, message, senderUsername: "bitpixi" })
-
-      // Return success for demo messages without actually inserting to database
-      return { success: true, demo: true }
-    }
-
-    // Get the sender's username from the profiles table
-    const { data: senderProfile, error: profileError } = await supabase
-      .from("profiles")
-      .select("username")
-      .eq("id", senderId)
-      .single()
-
-    if (profileError) {
-      console.error("Error fetching sender profile:", profileError)
-      // Continue with insertion but use a fallback username
-    }
-
-    // Use the fetched username or default to email prefix
-    const senderUsername = senderProfile?.username || "unknown user"
-
-    // For real UUIDs, proceed with normal insertion
-    const { error } = await supabase.from("messages").insert({
-      sender_id: senderId,
-      receiver_id: receiverId,
-      message,
-      task_id: null,
-      sender_username: senderUsername, // Use the dynamically fetched username
-    })
-
-    if (error) {
-      console.error("Error sending encouragement:", error)
-      return { error: error.message }
-    }
-
-    return { success: true }
-  } catch (err) {
-    console.error("Unexpected error in sendEncouragement:", err)
-    return { error: "An unexpected error occurred", details: err }
-  }
-}
-
 // Save character stats to database
 export async function saveCharacterStats(userId: string, stats: CharacterStats) {
   const supabase = createServerClient()
 
-  // Check if stats exist for this user
-  const { data: existingStats, error: fetchError } = await supabase
-    .from("character_stats")
-    .select("id")
-    .eq("profile_id", userId)
-    .maybeSingle()
+  try {
+    // Check if stats exist for this user
+    const { data: existingStats, error: fetchError } = await supabase
+      .from("character_stats")
+      .select("id")
+      .eq("profile_id", userId)
+      .maybeSingle()
 
   if (fetchError) {
     console.error("Error fetching character stats:", fetchError)
@@ -470,6 +265,10 @@ export async function saveCharacterStats(userId: string, stats: CharacterStats) 
 
   // Remove revalidatePath call
   return { success: true }
+  } catch (err) {
+    console.error("Unexpected error in saveCharacterStats:", err);
+    return { error: "An unexpected error occurred", details: err };
+  }
 }
 
 // Save skills to database
@@ -726,10 +525,10 @@ export async function loadUserData(userId: string) {
   }
 
   try {
-    let formattedLocations = []
-    // Load months and tasks
-    const { data: months, error: monthsError } = await supabase
-      .from("months")
+    let formattedLocations: any[] = []
+    // Load todo lists and tasks
+    const { data: todoData, error: todoError } = await supabase
+      .from("todo_lists")
       .select(`
         id, name, year, unlocked, completed,
         tasks(id, name, completed, urgent, position)
@@ -738,12 +537,12 @@ export async function loadUserData(userId: string) {
       .order("year", { ascending: true })
       .order("name", { ascending: true })
 
-    if (monthsError) {
-      console.error("Error loading months:", monthsError)
+    if (todoError) {
+      console.error("Error loading todo lists:", todoError)
 
       // Only treat as auth error if it's explicitly a JWT expired error
       // Not just any JWT-related message
-      if (monthsError.message && monthsError.message.includes("JWT expired")) {
+      if (todoError.message && todoError.message.includes("JWT expired")) {
         return {
           error: "Authentication expired. Please refresh the page or log in again.",
           isAuthError: true,
@@ -751,14 +550,14 @@ export async function loadUserData(userId: string) {
       }
 
       // For other JWT errors, just log and continue
-      if (monthsError.message && monthsError.message.includes("JWT")) {
-        console.warn("JWT issue detected but continuing:", monthsError.message)
+      if (todoError.message && todoError.message.includes("JWT")) {
+        console.warn("JWT issue detected but continuing:", todoError.message)
       } else {
-        return { error: monthsError.message }
+        return { error: todoError.message }
       }
     }
 
-    console.log(`Loaded ${months?.length || 0} months for user ${userId}`)
+    console.log(`Loaded todo lists for user ${userId}`)
 
     // Load locations and tasks - with better error handling
     try {
@@ -831,19 +630,24 @@ export async function loadUserData(userId: string) {
     }
 
     // Format the data for the client
-    const formattedMonths = months?.map((month) => ({
-      name: month.name,
-      year: month.year,
-      unlocked: month.unlocked,
-      completed: month.completed,
-      tasks: month.tasks
-        .sort((a, b) => a.position - b.position)
-        .map((task) => ({
-          id: `task_${task.id}`,
-          name: task.name,
+    // Flatten all tasks for display
+    const lists = todoData?.lists || [];
+    const formattedTasks: any[] = [];
+    (lists as any[]).forEach((list: any) => {
+      (list.tasks || []).forEach((task: any) => {
+        formattedTasks.push({
+          id: task.id,
+          list_id: list.id,
+          list_title: list.title,
+          task_name: task.name,
           completed: task.completed,
-        })),
-    }))
+          urgent: task.urgent || false,
+          optional: task.optional || false,
+        });
+      });
+    });
+    // All month-based logic removed. Only todo_lists is used.
+
 
     const formattedSkills = skills?.map((skill) => ({
       id: skill.skill_key,
@@ -854,42 +658,11 @@ export async function loadUserData(userId: string) {
       category: skill.category,
     }))
 
-    // If no months data was found, provide default empty months
-    if (!formattedMonths || formattedMonths.length === 0) {
-      const currentYear = new Date().getFullYear()
-      const emptyMonths = [
-        {
-          name: "April",
-          year: currentYear,
-          unlocked: true,
-          completed: false,
-          tasks: [],
-        },
-        {
-          name: "May",
-          year: currentYear,
-          unlocked: true,
-          completed: false,
-          tasks: [],
-        },
-        {
-          name: "June",
-          year: currentYear,
-          unlocked: true,
-          completed: false,
-          tasks: [],
-        },
-        {
-          name: "Daily Tasks",
-          year: currentYear,
-          unlocked: true,
-          completed: false,
-          tasks: [],
-        },
-      ]
-
+    // If no todo lists data was found, provide default empty lists
+    if (!formattedTasks || formattedTasks.length === 0) {
+      const emptyLists: any[] = [];
       return {
-        months: emptyMonths,
+        lists: emptyLists,
         locations: formattedLocations || [],
         characterStats: characterStats || { energy: 70, learning: 45, relationships: 60 },
         skills: formattedSkills || [],
@@ -900,7 +673,7 @@ export async function loadUserData(userId: string) {
     }
 
     return {
-      months: formattedMonths,
+      tasks: formattedTasks,
       locations: formattedLocations || [],
       characterStats: characterStats || { energy: 70, learning: 45, relationships: 60 },
       skills: formattedSkills || [],
@@ -952,26 +725,35 @@ export async function getCoworkerTasks(username: string) {
     return { error: "Coworker not found" }
   }
 
-  // Then get their shared tasks
-  const { data: tasks, error: tasksError } = await supabase
-    .from("tasks_shared")
-    .select("*")
-    .eq("profile_id", profile.id)
-    .order("month_year", { ascending: true })
-    .order("month_name", { ascending: true })
+  // Then get their todo lists
+  const { data: todoData, error: todoError } = await supabase
+    .from("todo_lists")
+    .select("lists")
+    .eq("user_id", profile.id)
+    .single();
 
-  if (tasksError) {
-    return { error: "Error fetching tasks" }
+  if (todoError || !todoData) {
+    return { error: "No tasks available" };
   }
 
-  // If no shared tasks exist, get tasks from the regular tasks table
-  if (tasks.length === 0) {
-    const { data: monthTasks, error: monthTasksError } = await supabase
-      .from("months")
-      .select(`
-        id, name, year,
-        tasks(id, name, completed, optional, urgent, position)
-      `)
+  // Flatten all tasks for screenshare
+  const todoLists = todoData?.todo_lists || [];
+  const formattedTasks: any[] = [];
+  (todoLists as any[]).forEach((list: any) => {
+    (list.tasks || []).forEach((task: any) => {
+      formattedTasks.push({
+        id: task.id,
+        list_id: list.id,
+        list_title: list.name,
+        task_name: task.name,
+        completed: task.completed,
+        urgent: task.urgent || false,
+        optional: task.optional || false,
+      });
+    });
+  });
+
+  return { tasks: formattedTasks };
       .eq("profile_id", profile.id)
       .order("year", { ascending: true })
       .order("name", { ascending: true })
@@ -986,8 +768,8 @@ export async function getCoworkerTasks(username: string) {
       month.tasks.forEach((task) => {
         formattedTasks.push({
           id: task.id,
-          month_name: month.name,
-          month_year: month.year,
+          
+          
           task_name: task.name,
           completed: task.completed,
           urgent: task.urgent || false,
@@ -999,135 +781,11 @@ export async function getCoworkerTasks(username: string) {
     return { tasks: formattedTasks }
   }
 
-  return { tasks }
 }
 
 // Function to share tasks with coworkers
 export async function shareTasksWithCoworkers(userId: string) {
-  const supabase = createServerClient()
-
-  try {
-    // Get the user's tasks from months
-    const { data: monthTasks, error: monthTasksError } = await supabase
-      .from("months")
-      .select(`
-        id, name, year,
-        tasks(id, name, completed, optional, urgent, position)
-      `)
-      .eq("profile_id", userId)
-      .order("year", { ascending: true })
-      .order("name", { ascending: true })
-
-    if (monthTasksError) {
-      console.error("Error fetching tasks:", monthTasksError)
-      return { error: "Error fetching tasks" }
-    }
-
-    // Delete existing shared tasks for this user
-    const { error: deleteError } = await supabase.from("tasks_shared").delete().eq("profile_id", userId)
-
-    if (deleteError) {
-      console.error("Error deleting existing shared tasks:", deleteError)
-      return { error: "Error preparing task sharing" }
-    }
-
-    // Insert tasks into tasks_shared
-    const tasksToShare = []
-    monthTasks?.forEach((month) => {
-      month.tasks.forEach((task) => {
-        tasksToShare.push({
-          profile_id: userId,
-          month_name: month.name,
-          month_year: month.year,
-          task_name: task.name,
-          completed: task.completed,
-          urgent: task.urgent || false,
-          optional: task.optional || false,
-        })
-      })
-    })
-
-    if (tasksToShare.length > 0) {
-      // Insert in smaller batches to avoid potential payload size issues
-      const batchSize = 50
-      for (let i = 0; i < tasksToShare.length; i += batchSize) {
-        const batch = tasksToShare.slice(i, i + batchSize)
-        const { error: insertError } = await supabase.from("tasks_shared").insert(batch)
-
-        if (insertError) {
-          console.error("Error sharing tasks batch:", insertError)
-          return { error: "Error sharing tasks" }
-        }
-      }
-    }
-
-    return { success: true }
-  } catch (error) {
-    console.error("Unexpected error in shareTasksWithCoworkers:", error)
-    return { error: "An unexpected error occurred" }
-  }
-}
-
-// Get archived (completed) tasks for a user
-export async function getArchivedTasks(userId: string) {
-  const supabase = createServerClient()
-
-  try {
-    // First, create the tasks_archive table if it doesn't exist
-    const { error: tableCheckError } = await supabase.rpc("create_tasks_archive_table_if_not_exists")
-
-    if (tableCheckError) {
-      console.error("Error checking tasks_archive table:", tableCheckError)
-      return { error: tableCheckError.message }
-    }
-
-    // Check if there are any archived tasks
-    const { data: archivedTasks, error: archivedError } = await supabase
-      .from("tasks_archive")
-      .select("*")
-      .eq("profile_id", userId)
-      .order("completed_at", { ascending: false })
-
-    if (archivedError) {
-      console.error("Error fetching archived tasks:", archivedError)
-      return { error: archivedError.message }
-    }
-
-    return { tasks: archivedTasks }
-  } catch (error) {
-    console.error("Error in getArchivedTasks:", error)
-    return { error: "Failed to get archived tasks" }
-  }
-}
-
-// Get archived (sent) messages for a user
-export async function getArchivedMessages(userId: string) {
-  const supabase = createServerClient()
-
-  try {
-    // First, create the messages_archive table if it doesn't exist
-    const { error: tableCheckError } = await supabase.rpc("create_messages_archive_table_if_not_exists")
-
-    if (tableCheckError) {
-      console.error("Error checking messages_archive table:", tableCheckError)
-      return { error: tableCheckError.message }
-    }
-
-    // Check if there are any archived messages
-    const { data: archivedMessages, error: archivedError } = await supabase
-      .from("messages_archive")
-      .select("*")
-      .eq("sender_id", userId)
-      .order("created_at", { ascending: false })
-
-    if (archivedError) {
-      console.error("Error fetching archived messages:", archivedError)
-      return { error: archivedError.message }
-    }
-
-    return { messages: archivedMessages }
-  } catch (error) {
-    console.error("Error in getArchivedMessages:", error)
-    return { error: "Failed to get archived messages" }
-  }
+  // Task sharing is now universal: anyone with an account can see all tasks.
+  // This function is no longer needed but kept for API compatibility.
+  return { info: "All tasks are now visible to any account. No specific sharing logic required." };
 }

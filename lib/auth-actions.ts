@@ -42,101 +42,38 @@ export async function getCoworkerTasks(username: string) {
     return { error: "Coworker not found" }
   }
 
-  // Then get their shared tasks
-  const { data: tasks, error: tasksError } = await supabase
-    .from("tasks_shared")
-    .select("*")
-    .eq("profile_id", profile.id)
-    .order("month_year", { ascending: true })
-    .order("month_name", { ascending: true })
+  // Get their todo lists
+  const { data: todoData, error: todoError } = await supabase
+    .from("todo_lists")
+    .select("lists")
+    .eq("user_id", profile.id)
+    .single()
 
-  if (tasksError) {
-    return { error: "Error fetching tasks" }
+  if (todoError || !todoData) {
+    return { error: "No tasks available" }
   }
 
-  // If no shared tasks exist, get tasks from the regular tasks table
-  if (tasks.length === 0) {
-    const { data: monthTasks, error: monthTasksError } = await supabase
-      .from("months")
-      .select(`
-        id, name, year,
-        tasks(id, name, completed, optional, urgent, position)
-      `)
-      .eq("profile_id", profile.id)
-      .order("year", { ascending: true })
-      .order("name", { ascending: true })
-
-    if (monthTasksError) {
-      return { error: "No tasks available" }
-    }
-
-    // Format the tasks for display
-    const formattedTasks = []
-    monthTasks?.forEach((month) => {
-      month.tasks.forEach((task) => {
-        formattedTasks.push({
-          id: task.id,
-          month_name: month.name,
-          month_year: month.year,
-          task_name: task.name,
-          completed: task.completed,
-          urgent: task.urgent || false,
-          optional: task.optional || false,
-        })
-      })
-    })
-
-    return { tasks: formattedTasks }
-  }
-
-  return { tasks }
-}
-
-// Function to share tasks with coworkers
-export async function shareTasksWithCoworkers(userId: string) {
-  const supabase = createServerClient()
-
-  // Get the user's tasks from months
-  const { data: monthTasks, error: monthTasksError } = await supabase
-    .from("months")
-    .select(`
-      id, name, year,
-      tasks(id, name, completed, optional, urgent, position)
-    `)
-    .eq("profile_id", userId)
-    .order("year", { ascending: true })
-    .order("name", { ascending: true })
-
-  if (monthTasksError) {
-    return { error: "Error fetching tasks" }
-  }
-
-  // Delete existing shared tasks for this user
-  await supabase.from("tasks_shared").delete().eq("profile_id", userId)
-
-  // Insert tasks into tasks_shared
-  const tasksToShare = []
-  monthTasks?.forEach((month) => {
-    month.tasks.forEach((task) => {
-      tasksToShare.push({
-        profile_id: userId,
-        month_name: month.name,
-        month_year: month.year,
+  // Flatten all tasks for screenshare
+  const lists = todoData.lists || [];
+  const tasks: any[] = [];
+  (lists as any[]).forEach((list: any) => {
+    (list.tasks || []).forEach((task: any) => {
+      tasks.push({
+        id: task.id,
+        list_id: list.id,
+        list_title: list.title,
         task_name: task.name,
         completed: task.completed,
         urgent: task.urgent || false,
         optional: task.optional || false,
-      })
-    })
-  })
+      });
+    });
+  });
 
-  if (tasksToShare.length > 0) {
-    const { error: insertError } = await supabase.from("tasks_shared").insert(tasksToShare)
+  return { tasks };
+}
 
-    if (insertError) {
-      return { error: "Error sharing tasks" }
-    }
-  }
-
-  return { success: true }
+// Sharing is deprecated in the new To Do system. Implement sharing via todo_lists or a new sharing table if needed.
+export async function shareTasksWithCoworkers(userId: string) {
+  return { error: "Task sharing is not implemented in the new To Do system." };
 }
