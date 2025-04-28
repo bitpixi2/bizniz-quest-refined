@@ -5,15 +5,15 @@
 [![Built with Supabase](https://img.shields.io/badge/Built%20with-Supabase-3ecf8e?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
 [![GitHub stars](https://img.shields.io/github/stars/bitpixi2/bizniz-quest-refined?style=for-the-badge)](https://github.com/bitpixi2/bizniz-quest-refined/stargazers)
 
-BiznizQuest is a playful productivity and life-balance app built with Next.js, React, and Supabase. It features a character system, gamified calendar, and background music to make your daily tasks more engaging.
+<img src="/public/images/login-screenshot.png" alt="BiznizQuest Login Screenshot" width="600" />
+
+BiznizQuest is a pixel style productivity app built with Next.js, React, and Supabase. It features a character system, gamified calendar, and background music to make your daily tasks more engaging.
 
 ## Features
 
-- **Character System:** Choose and customize your character, track life balance categories, and save personal notes.
-- **Calendar System:** Manage your daily to-dos with a grid-based calendar, mark tasks as complete, and sync with Supabase.
-- **Background Music:** Enjoy relaxing music on login/signup and energetic tunes once inside.
-- **Supabase Integration:** Secure authentication and real-time data storage for user progress and notes.
-- **Modern UI:** Built with React and Shadcn UI components for a clean, responsive experience.
+- **Character System:** Choose character, set up your work life balance, and save notes.
+- **Calendar System:** Manage your to-dos across a few different lists, and mark tasks as complete.
+- **Vibes:** Enjoy relaxing music on login/signup and energetic tunes once inside.
 
 ## Tech Stack
 - **Next.js** (App Router, SSR/CSR)
@@ -23,9 +23,10 @@ BiznizQuest is a playful productivity and life-balance app built with Next.js, R
 - **Shadcn UI**
 - **Lucide-react** (icons)
 
-## Getting Started
+## Try it out
 
-1. This will be deployed soon to bizniz-quest.com where I need lots of feedback!
+This will be deployed soon to <a href="https://bizniz.quest">bizniz.quest</a> where I need lots of feedback!
+It's missing something, and that something is your help. :3
 
 ## Folder Structure
 - `/components` – React components (character system, calendar, music, etc.)
