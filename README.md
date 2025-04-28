@@ -1,8 +1,8 @@
 # BiznizQuest
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/bitpixi2/bizniz-quest-refined)
 [![Built with Next.js](https://img.shields.io/badge/Built%20with-Next.js-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
 [![Built with Supabase](https://img.shields.io/badge/Built%20with-Supabase-3ecf8e?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/bitpixi2/bizniz-quest-refined)
 
 <img src="/public/images/login-screenshot.png" alt="BiznizQuest Login Screenshot" width="600" />
 
